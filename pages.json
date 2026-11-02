@@ -1,0 +1,27 @@
+{
+	"pages": [
+		{
+			"path": "pages/login/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarBackgroundColor": "#F7F9FD",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationBarTitleText": "WiseLink Auto Ride",
+				"navigationBarBackgroundColor": "#ffffff",
+				"navigationBarTextStyle": "black"
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "black",
+		"navigationBarTitleText": "WiseLink Auto Ride",
+		"navigationBarBackgroundColor": "#F7F9FD",
+		"backgroundColor": "#F5F6FA"
+	},
+	"uniIdRouter": {}
+}

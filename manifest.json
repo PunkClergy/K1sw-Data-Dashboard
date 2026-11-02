@@ -1,0 +1,38 @@
+{
+    "name" : "WiseLink Auto Ride",
+    "appid" : "__UNI__D29C591",
+    "description" : "WiseLink Auto Ride 账号密码登录骨架（App / 小程序 / H5 共用 loginEnter 接口）",
+    "versionName" : "1.0.0",
+    "versionCode" : "100",
+    "transformPx" : false,
+    "app-plus" : {
+        "usingComponents" : true,
+        "nvueCompiler" : "uni-app",
+        "nvueStyleCompiler" : "uni-app",
+        "compilerVersion" : 3,
+        "modules" : {},
+        "distribute" : {
+            "android" : {
+                "permissions" : []
+            },
+            "ios" : {},
+            "sdkConfigs" : {}
+        }
+    },
+    "quickapp" : {},
+    "mp-weixin" : {
+        "appid" : "wx859ad44e1602f191",
+        "setting" : {
+            "urlCheck" : false
+        },
+        "usingComponents" : true
+    },
+    "vueVersion" : "3",
+    "h5" : {
+        "router" : {
+            "base" : "./",
+            "mode" : "hash"
+        },
+        "title" : "WiseLink Auto Ride"
+    }
+}
