@@ -12,7 +12,7 @@
 			<view class="brand">
 				<image class="logo" src="/static/images/logo.png" mode="aspectFit"></image>
 				<text class="brand-title">K1SW 数据看板</text>
-				<text class="brand-sub">Fleet Digital Key · 智能出行车钥匙</text>
+				<text class="brand-sub">Fleet Digital Key</text>
 			</view>
 
 			<view class="card">
@@ -23,16 +23,18 @@
 
 				<view class="field" :class="{ focused: focusField === 'username' }" @tap="setFocus('username')">
 					<view class="field-icon icon-user" @tap.stop="setFocus('username')"></view>
-					<input ref="accountInput" class="field-input" type="text" v-model="username" :focus="accountFocus"
+					<input ref="accountInput" class="field-input" type="text" :value="username" :focus="accountFocus"
 						placeholder="请输入账号" placeholder-class="ph" confirm-type="next"
+						@input="onInput('username', $event)"
 						@tap="setFocus('username')"
 						@focus="onFocus('username')" @blur="onBlur('username')" @confirm="handleLogin" />
 				</view>
 
 				<view class="field" :class="{ focused: focusField === 'lock' }" @tap="setFocus('lock')">
 					<view class="field-icon icon-lock" @tap.stop="setFocus('lock')"></view>
-					<input ref="pwdInput" class="field-input" :password="!showPassword" :focus="pwdFocus" v-model="lock"
+					<input ref="pwdInput" class="field-input" :password="!showPassword" :focus="pwdFocus" :value="password"
 						placeholder="请输入密码" placeholder-class="ph" confirm-type="go"
+						@input="onInput('password', $event)"
 						@tap="setFocus('lock')"
 						@focus="onFocus('lock')" @blur="onBlur('lock')" @confirm="handleLogin" />
 					<text class="toggle-pwd" @tap.stop="showPassword = !showPassword">
@@ -48,15 +50,15 @@
 
 		<!-- 底部公司介绍区（约占屏幕 1/4） -->
 		<view class="company">
-			<text class="company-title">WiseLink Auto Ride 智能车钥匙平台</text>
+			<text class="company-title">WiseLink Fleet Digital Key</text>
 			<text class="company-desc">面向车队运营与个人车主的数字化用车工具，提供云端控车、车辆状态与用车权限统一管理。</text>
-			<text class="company-copyright">© 2026 WiseLink Auto Ride · K1SW 数据看板 v1.0.0</text>
+			<text class="company-copyright">© 2026 WiseLink · K1SW 数据看板 v1.0.0</text>
 		</view>
 	</view>
 </template>
 
 <script>
-	import { loginEnter } from '@/api'
+	import { login } from '@/api'
 	import { saveAuth, isLoggedIn } from '@/utils/auth'
 
 	export default {
@@ -65,7 +67,7 @@
 				statusBarHeight: 20,
 				contentPadTop: 44,
 				username: '',
-				lock: '',
+				password: '',
 				showPassword: false,
 				submitting: false,
 				focusField: '',
@@ -95,24 +97,17 @@
 			}
 		},
 		methods: {
-			// 聚焦三层保险：① input 原生 @tap 自带聚焦 ② 受控布尔先复位再下一帧置 true 强制跳变
-			// ③ ref.focus() 兜底；blur 时复位布尔，保证再次点击可重新拉起键盘
+			// 输入值显式同步到 data，避免 v-model 在某些端与受控 focus 跳变不同步
+			onInput(field, e) {
+				this[field] = e.detail.value
+			},
+			// 聚焦：幂等置 true（未聚焦才触发），避免反复 false→true 跳变导致输入框重建、正在输入的值丢失
 			setFocus(name) {
 				this.focusField = name
 				const focusKey = name === 'lock' ? 'pwdFocus' : 'accountFocus'
-				const refKey = name === 'lock' ? 'pwdInput' : 'accountInput'
-				this[focusKey] = false
-				this.$nextTick(() => {
+				if (!this[focusKey]) {
 					this[focusKey] = true
-					const ref = this.$refs[refKey]
-					if (ref && typeof ref.focus === 'function') {
-						setTimeout(() => {
-							try {
-								ref.focus()
-							} catch (e) {}
-						}, 20)
-					}
-				})
+				}
 			},
 			onFocus(name) {
 				this.focusField = name
@@ -130,7 +125,7 @@
 					uni.showToast({ title: '请输入账号', icon: 'none' })
 					return false
 				}
-				if (!this.lock) {
+				if (!this.password) {
 					uni.showToast({ title: '请输入密码', icon: 'none' })
 					return false
 				}
@@ -143,9 +138,9 @@
 				this.submitting = true
 				uni.showLoading({ title: '登录中…', mask: true })
 				try {
-					const res = await loginEnter({
+					const res = await login({
 						username: this.username.trim(),
-						lock: this.lock
+						password: this.password
 					})
 					uni.hideLoading()
 					this.submitting = false
@@ -164,6 +159,7 @@
 				} catch (e) {
 					uni.hideLoading()
 					this.submitting = false
+					console.error('[login] 接口失败详情:', e)
 					uni.showToast({ title: (e && e.msg) || '网络异常，请稍后重试', icon: 'none' })
 				}
 			}

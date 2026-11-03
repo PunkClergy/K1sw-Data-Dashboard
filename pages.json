@@ -11,8 +11,16 @@
 		{
 			"path": "pages/index/index",
 			"style": {
-				"navigationBarTitleText": "WiseLink Auto Ride",
-				"navigationBarBackgroundColor": "#ffffff",
+				"navigationStyle": "custom",
+				"navigationBarBackgroundColor": "#F7F9FD",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/list/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarBackgroundColor": "#F7F9FD",
 				"navigationBarTextStyle": "black"
 			}
 		}

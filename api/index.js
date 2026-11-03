@@ -1,3 +1,3 @@
 // api/index.js
-// 接口统一出口：按模块在此挂载，例如 export * from './auth'
-export * from './auth'
+// 接口统一出口：显式 re-export 各模块（小程序端对 export * 增量编译偶发丢导出）
+export { login, logout } from './auth'

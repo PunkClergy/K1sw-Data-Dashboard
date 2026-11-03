@@ -5,11 +5,9 @@ import { clearAuth } from '@/utils/auth'
 
 // 账号密码登录：POST application/x-www-form-urlencoded
 // 表单字段：
-//   username    账号（必填）
-//   lock        密码（必填）
-//   companyId   企业编号（可选，当前不传）
-//   companyType 企业类型（可选，当前不传）
-export const loginEnter = (data) => http.postFormData('/loginEnter', data)
+//   username   账号（必填）
+//   password   密码（必填）
+export const login = (data) => http.postFormData('/api/login', data)
 
 // 退出登录：清除本地登录态
 export const logout = () => clearAuth()
