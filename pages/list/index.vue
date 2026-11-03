@@ -45,6 +45,7 @@
 				</view>
 
 				<!-- 卡片字段：默认重要字段 -->
+				<!-- 默认显示：销售人员、最新联络、国家、信息渠道 -->
 				<view class="field-grid">
 					<view class="field-item">
 						<text class="field-label">销售人员</text>
@@ -54,10 +55,6 @@
 						<text class="field-label">最新联络</text>
 						<text class="field-value">{{ item.lastContact }}</text>
 					</view>
-				</view>
-
-				<!-- 展开：全部字段 -->
-				<view class="field-grid" v-if="item.expanded">
 					<view class="field-item">
 						<text class="field-label">国家</text>
 						<text class="field-value">{{ item.country }}</text>
@@ -66,21 +63,15 @@
 						<text class="field-label">信息渠道</text>
 						<text class="field-value">{{ item.channel }}</text>
 					</view>
-					<view class="field-item">
-						<text class="field-label">跟进时间</text>
-						<text class="field-value">{{ item.followTime }}</text>
-					</view>
-					<view class="field-item">
-						<text class="field-label">公司规模</text>
-						<text class="field-value">{{ item.scale }}</text>
-					</view>
-					<view class="field-item">
-						<text class="field-label">公司邮箱</text>
-						<text class="field-value ellipsis link" @tap="copyText(item.email)">{{ item.email }}</text>
-					</view>
-					<view class="field-item">
-						<text class="field-label">公司电话</text>
-						<text class="field-value ellipsis link" @tap="copyText(item.phone)">{{ item.phone }}</text>
+				</view>
+
+				<!-- 展开：列设置对应的字段 -->
+				<view class="field-grid" v-if="item.expanded">
+					<view class="field-item" v-for="f in getVisibleFields(item)" :key="f.key"
+						:class="{ 'full-width': isLong(f.value) }">
+						<text class="field-label">{{ f.label }}</text>
+						<text class="field-value ellipsis" :class="{ link: f.copyable }"
+							@tap="f.copyable ? copyText(f.value) : null">{{ f.value }}</text>
 					</view>
 				</view>
 
@@ -279,6 +270,13 @@
 </template>
 
 <script>
+	import {
+		getCustomerList
+	} from '@/api'
+	import {
+		mockCustomerList,
+		mockFollowUpHistory
+	} from '@/mock/customer'
 	export default {
 		data() {
 			return {
@@ -324,17 +322,10 @@
 						name: '销售人员'
 					},
 					{
-						key: 'contact',
-						name: '联络记录'
-					},
-					{
 						key: 'lastContact',
 						name: '最新联络'
 					},
-					{
-						key: 'model',
-						name: '归属模型'
-					},
+
 					{
 						key: 'website',
 						name: '公司网站'
@@ -343,58 +334,17 @@
 						key: 'country',
 						name: '国家'
 					},
-					{
-						key: 'countryCode',
-						name: '国家代码'
-					},
+
 					{
 						key: 'channel',
 						name: '信息渠道'
 					},
-					{
-						key: 'reason',
-						name: '推荐理由'
-					},
-					{
-						key: 'search',
-						name: '搜索词'
-					},
-					{
-						key: 'followStatus',
-						name: '跟进状态'
-					},
-					{
-						key: 'followUser',
-						name: '跟进用户'
-					},
+
 					{
 						key: 'followTime',
 						name: '跟进时间'
 					},
-					{
-						key: 'segment',
-						name: '客户分群'
-					},
-					{
-						key: 'taskType',
-						name: '任务类型'
-					},
-					{
-						key: 'firstTime',
-						name: '首次营销时间'
-					},
-					{
-						key: 'replyCount',
-						name: '回复次数'
-					},
-					{
-						key: 'favStatus',
-						name: '收藏状态'
-					},
-					{
-						key: 'mark',
-						name: '负责标记'
-					},
+
 					{
 						key: 'remark',
 						name: '公司备注'
@@ -427,14 +377,7 @@
 						key: 'foundTime',
 						name: '公司成立时间'
 					},
-					{
-						key: 'category',
-						name: '产品类目'
-					},
-					{
-						key: 'detail',
-						name: '产品详情'
-					},
+
 					{
 						key: 'contactCount',
 						name: '联系人数量'
@@ -486,42 +429,38 @@
 
 			this.nodeType = options.type || ''
 			this.pageTitle = options.name || '节点列表'
-			this.loadMockData()
+			// 从缓存读取列设置
+			try {
+				const saved = uni.getStorageSync('visibleCols')
+				if (saved) {
+					this.visibleCols = JSON.parse(saved)
+				}
+			} catch (e) {}
+			this.loadData()
 		},
 		methods: {
-			loadMockData() {
-				const companies = ['Acme Corp', 'Beta Industries', 'Gamma Ltd', 'Delta Group', 'Epsilon Inc', 'Zeta Tech']
-				const statuses = [{
-						text: '跟进中',
-						type: 'ok'
-					},
-					{
-						text: '待跟进',
-						type: 'warn'
-					},
-					{
-						text: '已成交',
-						type: 'off'
-					}
-				]
-				this.listData = companies.map((name, i) => {
-					const s = statuses[i % 3]
-					return {
-						id: i + 1,
-						company: name + ' ' + this.nodeType,
-						status: s.text,
-						statusType: s.type,
-						sales: '张伟',
-						lastContact: '10:' + (20 + i),
-						country: '中国',
-						channel: '官网',
-						followTime: '今日 09:' + (10 + i),
-						scale: '50-200人',
-						email: 'contact@' + name.toLowerCase().replace(' ', '') + '.com',
-						phone: '+86 138****' + (1000 + i),
-						expanded: false
-					}
-				})
+			loadData() {
+				this.listData = mockCustomerList.map(item => ({
+					id: item.id,
+					company: item.companyname,
+					status: item.followstatus,
+					statusType: 'ok',
+					sales: item.salepersonName || '-',
+					lastContact: item.followtime ? item.followtime.substring(0, 16) : '-',
+					country: item.country || '-',
+					channel: item.channel || '-',
+					followTime: item.followtime ? item.followtime.substring(0, 16) : '-',
+					scale: item.companysize || '-',
+					email: item.email || '-',
+					phone: item.linkmobile || '-',
+					level: item.level || '-',
+					website: item.website || '-',
+					address: item.address || '-',
+					linkedin: item.linkedin || '-',
+					whatsapp: item.whatsapp || '-',
+					contacts: item.crmSzImproveContactList || [],
+					expanded: false
+				}))
 			},
 			toggleCol(key) {
 				const idx = this.visibleCols.indexOf(key)
@@ -586,6 +525,7 @@
 				]
 			},
 			applyCols() {
+				uni.setStorageSync('visibleCols', JSON.stringify(this.visibleCols))
 				this.showColSetting = false
 				uni.showToast({
 					title: '列设置已应用',
@@ -602,93 +542,94 @@
 			toggleExpand(item) {
 				item.expanded = !item.expanded
 			},
+			isLong(val) {
+				return val && val.length > 25
+			},
+			getVisibleFields(item) {
+				const fieldMap = {
+					company: {
+						label: '公司名称',
+						value: item.company
+					},
+					sales: {
+						label: '销售人员',
+						value: item.sales
+					},
+					lastContact: {
+						label: '最新联络',
+						value: item.lastContact
+					},
+					country: {
+						label: '国家',
+						value: item.country
+					},
+					channel: {
+						label: '信息渠道',
+						value: item.channel
+					},
+					followTime: {
+						label: '跟进时间',
+						value: item.followTime
+					},
+					scale: {
+						label: '公司规模',
+						value: item.scale
+					},
+					email: {
+						label: '公司邮箱',
+						value: item.email,
+						copyable: true
+					},
+					phone: {
+						label: '公司电话',
+						value: item.phone,
+						copyable: true
+					},
+					level: {
+						label: '等级',
+						value: item.level
+					},
+					website: {
+						label: '公司网站',
+						value: item.website,
+						copyable: true
+					},
+					address: {
+						label: '公司地址',
+						value: item.address
+					},
+					linkedin: {
+						label: 'LinkedIn',
+						value: item.linkedin,
+						copyable: true
+					},
+					whatsapp: {
+						label: 'WhatsApp',
+						value: item.whatsapp,
+						copyable: true
+					}
+				}
+				// 排除默认显示的4个字段：sales、lastContact、country、channel
+				// 排除公司名称：company（卡片头部已显示）
+				const excludeKeys = ['sales', 'lastContact', 'country', 'channel', 'company']
+				return this.visibleCols
+					.filter(key => !excludeKeys.includes(key))
+					.map(key => fieldMap[key])
+					.filter(f => f && f.value && f.value !== '-')
+			},
 			openContacts(item) {
 				this.currentItem = item
-				this.contactList = [{
-						name: 'John Doe',
-						phone: '+86 138-0000-1234',
-						email: 'john@acme.com',
-						linkedin: 'linkedin.com/in/johndoe'
-					},
-					{
-						name: 'John Doe',
-						phone: '+86 138-0000-1234',
-						email: 'john@acme.com',
-						linkedin: 'linkedin.com/in/johndoe'
-					},
-					{
-						name: 'John Doe',
-						phone: '+86 138-0000-1234',
-						email: 'john@acme.com',
-						linkedin: 'linkedin.com/in/johndoe'
-					},
-					{
-						name: 'John Doe',
-						phone: '+86 138-0000-1234',
-						email: 'john@acme.com',
-						linkedin: 'linkedin.com/in/johndoe'
-					},
-					{
-						name: 'John Doe',
-						phone: '+86 138-0000-1234',
-						email: 'john@acme.com',
-						linkedin: 'linkedin.com/in/johndoe'
-					},
-					{
-						name: 'John Doe',
-						phone: '+86 138-0000-1234',
-						email: 'john@acme.com',
-						linkedin: 'linkedin.com/in/johndoe'
-					},
-					{
-						name: 'Jane Smith',
-						phone: '+86 139-0000-5678',
-						email: 'jane@acme.com',
-						linkedin: 'linkedin.com/in/janesmith'
-					}
-				]
+				this.contactList = (item.contacts || []).map(c => ({
+					name: c.linkman || '-',
+					phone: c.mobile || '-',
+					email: c.email || '-',
+					linkedin: c.linkin || '-'
+				}))
 				this.showContacts = true
 			},
 			openFollowUp(item) {
 				this.currentItem = item
-				// Mock 历史记录
-				this.followHistory = [{
-						time: '2026-11-01 14:30',
-						content: '电话沟通，客户对产品感兴趣，约下周演示'
-					},
-					{
-						time: '2026-11-01 14:30',
-						content: '电话沟通，客户对产品感兴趣，约下周演示'
-					}, {
-						time: '2026-11-01 14:30',
-						content: '电话沟通，客户对产品感兴趣，约下周演示'
-					}, {
-						time: '2026-11-01 14:30',
-						content: '电话沟通，客户对产品感兴趣，约下周演示'
-					}, {
-						time: '2026-11-01 14:30',
-						content: '电话沟通，客户对产品感兴趣，约下周演示'
-					}, {
-						time: '2026-11-01 14:30',
-						content: '电话沟通，客户对产品感兴趣，约下周演示'
-					}, {
-						time: '2026-11-01 14:30',
-						content: '电话沟通，客户对产品感兴趣，约下周演示'
-					}, {
-						time: '2026-11-01 14:30',
-						content: '电话沟通，客户对产品感兴趣，约下周演示'
-					}, {
-						time: '2026-11-01 14:30',
-						content: '电话沟通，客户对产品感兴趣，约下周演示'
-					}, {
-						time: '2026-11-01 14:30',
-						content: '电话沟通，客户对产品感兴趣，约下周演示'
-					},
-					{
-						time: '2026-10-28 10:15',
-						content: '邮件发送产品资料，等待回复'
-					}
-				]
+				this.followHistory = mockFollowUpHistory[item.id] || []
 				this.followContent = ''
 				this.showFollowUp = true
 			},
@@ -919,10 +860,14 @@
 
 	.mini-btn {
 		padding: 10rpx 20rpx;
+		min-width: 120rpx;
 		background: linear-gradient(135deg, #f0f7ff 0%, #f0fdfa 100%);
 		border: 1rpx solid #e0f2fe;
 		border-radius: 20rpx;
 		margin-left: 12rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	.mini-text {
@@ -1000,6 +945,11 @@
 		padding: 10rpx 0;
 		box-sizing: border-box;
 		padding-right: 16rpx;
+	}
+
+	.field-item.full-width {
+		width: 100%;
+		padding-right: 0;
 	}
 
 	.field-label {
@@ -1083,6 +1033,8 @@
 		font-size: 30rpx;
 		color: #2b6cb0;
 		font-weight: 500;
+		min-width: 80rpx;
+		text-align: right;
 	}
 
 	.col-list {
@@ -1207,6 +1159,8 @@
 	.follow-close {
 		font-size: 30rpx;
 		color: #2b6cb0;
+		min-width: 80rpx;
+		text-align: right;
 	}
 
 	.follow-body {
@@ -1407,6 +1361,8 @@
 	.contact-close {
 		font-size: 30rpx;
 		color: #2b6cb0;
+		min-width: 80rpx;
+		text-align: right;
 	}
 
 	.contact-list {
@@ -1539,6 +1495,8 @@
 	.filter-close {
 		font-size: 30rpx;
 		color: #2b6cb0;
+		min-width: 80rpx;
+		text-align: right;
 	}
 
 	.filter-body {
@@ -1697,6 +1655,8 @@
 	.action-close {
 		font-size: 30rpx;
 		color: #2b6cb0;
+		min-width: 80rpx;
+		text-align: right;
 	}
 
 	.action-grid {
