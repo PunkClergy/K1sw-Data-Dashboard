@@ -273,10 +273,6 @@
 	import {
 		getCustomerList
 	} from '@/api'
-	import {
-		mockCustomerList,
-		mockFollowUpHistory
-	} from '@/mock/customer'
 	export default {
 		data() {
 			return {
@@ -440,27 +436,7 @@
 		},
 		methods: {
 			loadData() {
-				this.listData = mockCustomerList.map(item => ({
-					id: item.id,
-					company: item.companyname,
-					status: item.followstatus,
-					statusType: 'ok',
-					sales: item.salepersonName || '-',
-					lastContact: item.followtime ? item.followtime.substring(0, 16) : '-',
-					country: item.country || '-',
-					channel: item.channel || '-',
-					followTime: item.followtime ? item.followtime.substring(0, 16) : '-',
-					scale: item.companysize || '-',
-					email: item.email || '-',
-					phone: item.linkmobile || '-',
-					level: item.level || '-',
-					website: item.website || '-',
-					address: item.address || '-',
-					linkedin: item.linkedin || '-',
-					whatsapp: item.whatsapp || '-',
-					contacts: item.crmSzImproveContactList || [],
-					expanded: false
-				}))
+				this.listData = []
 			},
 			toggleCol(key) {
 				const idx = this.visibleCols.indexOf(key)
@@ -629,7 +605,7 @@
 			},
 			openFollowUp(item) {
 				this.currentItem = item
-				this.followHistory = mockFollowUpHistory[item.id] || []
+				this.followHistory = []
 				this.followContent = ''
 				this.showFollowUp = true
 			},

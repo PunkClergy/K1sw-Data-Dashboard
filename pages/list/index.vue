@@ -367,7 +367,7 @@
 				} catch (err) {
 					console.error('跟进记录加载失败:', err)
 					uni.showToast({
-						title: '接口请求失败',
+						title: err.msg || '接口请求失败',
 						icon: 'none'
 					})
 				}
@@ -388,7 +388,7 @@
 				} catch (err) {
 					console.error('公司详情加载失败:', err)
 					uni.showToast({
-						title: '接口请求失败',
+						title: err.msg || '接口请求失败',
 						icon: 'none'
 					})
 				}
@@ -420,7 +420,7 @@
 							} catch (err) {
 								console.error('点评提交失败:', err)
 								uni.showToast({
-									title: '接口请求失败',
+									title: err.msg || '接口请求失败',
 									icon: 'none'
 								})
 							}
