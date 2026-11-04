@@ -208,7 +208,8 @@
 	import {
 		getContactList,
 		getMoreContactList,
-		getCompanyInfo
+		getCompanyInfo,
+		reviewContact
 	} from '@/api'
 	export default {
 		data() {
@@ -357,22 +358,34 @@
 			openAction(item) {
 				console.log(item)
 				this.currentActionItem = item
-				// this.actionContent = ''
+				this.actionContent = ''
 				this.showAction = true
 			},
-			submitAction() {
+			async submitAction() {
 				uni.showModal({
 					title: '确认提交',
 					content: '确定要提交这条点评吗？',
 					confirmText: '确定',
 					cancelText: '取消',
-					success: (res) => {
+					success: async (res) => {
 						if (res.confirm) {
-							uni.showToast({
-								title: '提交成功',
-								icon: 'success'
-							})
-							this.showAction = false
+							try {
+								await reviewContact({
+									reviewContent: this.actionContent || '已阅',
+									id: this.currentActionItem?.id
+								})
+								uni.showToast({
+									title: '提交成功',
+									icon: 'success'
+								})
+								this.showAction = false
+							} catch (err) {
+								console.error('点评提交失败:', err)
+								uni.showToast({
+									title: '接口请求失败',
+									icon: 'none'
+								})
+							}
 						}
 					}
 				})

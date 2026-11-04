@@ -23,3 +23,7 @@ export const getMoreContactList = (params) => http.get('/contaceApi/moreContactL
 // 获取公司详情
 // params: { orderid, type }
 export const getCompanyInfo = (params) => http.get('/contaceApi/companyInfo', params)
+
+// 提交点评
+// data: { reviewContent, orderid, type }
+export const reviewContact = (data) => http.post('/contaceApi/reviewContact', data)
