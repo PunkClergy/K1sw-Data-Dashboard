@@ -53,7 +53,7 @@
 					</text>
 					<view class="footer-actions">
 						<text class="action-link" @tap="openFollowUp(item)">跟进记录</text>
-						<view class="mini-btn">
+						<view class="mini-btn" @tap="openAction(item)">
 							<text class="mini-text">操作</text>
 						</view>
 					</view>
@@ -103,6 +103,8 @@
 					<view class="filter-btn apply" @tap="applyFilter">确定</view>
 				</view>
 			</view>
+
+			<!-- 操作弹窗 -->
 		</view>
 
 		<!-- 公司详情弹窗 -->
@@ -176,6 +178,29 @@
 				</scroll-view>
 			</view>
 		</view>
+
+		<!-- 操作弹窗 -->
+		<view class="action-mask" :class="{ show: showAction }" @tap="showAction = false" @touchmove.stop.prevent>
+			<view class="action-panel" @tap.stop>
+				<view class="action-header">
+					<view class="action-header-bar"></view>
+					<view class="action-head">
+						<text class="action-title">记录点评</text>
+						<view class="action-close-btn" @tap="showAction = false">
+							<text class="action-close">✕</text>
+						</view>
+					</view>
+				</view>
+				<view class="action-body">
+					<textarea class="action-textarea" v-model="actionContent" placeholder="请输入点评内容,如未输入则默认提交【已阅】" />
+					<view class="action-foot">
+						<view class="action-btn confirm" @tap="submitAction">
+							<text class="action-btn-text">提交</text>
+						</view>
+					</view>
+				</view>
+			</view>
+		</view>
 	</view>
 </template>
 
@@ -205,7 +230,10 @@
 				followHistory: [],
 				listData: [],
 				showCompanyInfo: false,
-				companyInfo: null
+				companyInfo: null,
+				showAction: false,
+				actionContent: '',
+				currentActionItem: null
 			}
 		},
 		onLoad(options) {
@@ -325,6 +353,29 @@
 						icon: 'none'
 					})
 				}
+			},
+			openAction(item) {
+				console.log(item)
+				this.currentActionItem = item
+				// this.actionContent = ''
+				this.showAction = true
+			},
+			submitAction() {
+				uni.showModal({
+					title: '确认提交',
+					content: '确定要提交这条点评吗？',
+					confirmText: '确定',
+					cancelText: '取消',
+					success: (res) => {
+						if (res.confirm) {
+							uni.showToast({
+								title: '提交成功',
+								icon: 'success'
+							})
+							this.showAction = false
+						}
+					}
+				})
 			}
 		}
 	}
@@ -835,6 +886,132 @@
 	.history-empty {
 		padding: 60rpx 0;
 		text-align: center;
+	}
+
+	/* ===== 操作弹窗 ===== */
+	.action-mask {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.4);
+		z-index: 30;
+		opacity: 0;
+		visibility: hidden;
+		transition: all 0.25s;
+	}
+
+	.action-mask.show {
+		opacity: 1;
+		visibility: visible;
+	}
+
+	.action-panel {
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		min-height: 50vh;
+		background: #f7f9fd;
+		border-radius: 32rpx 32rpx 0 0;
+		padding-bottom: env(safe-area-inset-bottom);
+	}
+
+	.action-header {
+		background: #ffffff;
+		border-radius: 32rpx 32rpx 0 0;
+		padding-bottom: 20rpx;
+	}
+
+	.action-header-bar {
+		width: 64rpx;
+		height: 8rpx;
+		background: #e2e8f0;
+		border-radius: 4rpx;
+		margin: 16rpx auto 0;
+	}
+
+	.action-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 20rpx 32rpx 0;
+	}
+
+	.action-title {
+		font-size: 36rpx;
+		font-weight: 600;
+		color: #1a2233;
+	}
+
+	.action-close-btn {
+		width: 56rpx;
+		height: 56rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: #f4f6fa;
+		border-radius: 50%;
+	}
+
+	.action-close {
+		font-size: 28rpx;
+		color: #6b7280;
+	}
+
+	.action-body {
+		padding: 24rpx;
+	}
+
+	.action-textarea {
+		width: 100%;
+		height: 32vh;
+		background: #ffffff;
+		border: 1rpx solid #e2e8f0;
+		border-radius: 20rpx;
+		padding: 24rpx;
+		font-size: 30rpx;
+		color: #1a2233;
+		box-sizing: border-box;
+	}
+
+	.action-foot {
+		display: flex;
+		gap: 20rpx;
+		margin-top: 32rpx;
+	}
+
+	.action-btn {
+		flex: 1;
+		height: 88rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 44rpx;
+	}
+
+	.action-btn.cancel {
+		background: #ffffff;
+		border: 1rpx solid #e2e8f0;
+	}
+
+	.action-btn.confirm {
+		background: linear-gradient(135deg, #2b6cb0 0%, #14b8a6 100%);
+		box-shadow: 0 8rpx 20rpx rgba(43, 108, 176, 0.25);
+	}
+
+	.action-btn-text {
+		font-size: 32rpx;
+		font-weight: 500;
+	}
+
+	.action-btn.cancel .action-btn-text {
+		color: #6b7280;
+	}
+
+	.action-btn.confirm .action-btn-text {
+		color: #ffffff;
 	}
 
 	/* ===== 公司详情弹窗 ===== */
