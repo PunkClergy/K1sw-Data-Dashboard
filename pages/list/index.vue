@@ -63,6 +63,10 @@
 			<view class="list-empty" v-if="listData.length === 0">
 				<text class="empty-text">暂无数据</text>
 			</view>
+
+			<view class="load-more" v-if="listData.length > 0">
+				<text class="load-more-text">{{ loading ? '加载中...' : (hasMore ? '上拉加载更多' : '没有更多了') }}</text>
+			</view>
 		</view>
 
 		<!-- 筛选弹窗 -->
@@ -234,7 +238,11 @@
 				companyInfo: null,
 				showAction: false,
 				actionContent: '',
-				currentActionItem: null
+				currentActionItem: null,
+				page: 1,
+				pageSize: 20,
+				hasMore: true,
+				loading: false
 			}
 		},
 		onLoad(options) {
@@ -255,15 +263,29 @@
 			this.step = options.name || ''
 			this.loadData()
 		},
+		onReachBottom() {
+			if (this.hasMore && !this.loading) {
+				this.page++
+				this.loadData(true)
+			}
+		},
 		methods: {
-			async loadData() {
-				uni.showLoading({
-					title: '加载中...'
-				})
+			async loadData(isLoadMore = false) {
+				if (this.loading) return
+				this.loading = true
+
+				if (!isLoadMore) {
+					uni.showLoading({
+						title: '加载中...'
+					})
+					this.page = 1
+					this.hasMore = true
+				}
+
 				try {
 					const res = await getContactList({
-						page: 1,
-						pageSize: 20,
+						page: this.page,
+						pageSize: this.pageSize,
 						companyName: this.filterForm.companyName,
 						startDate: this.filterForm.startDate,
 						endDate: this.filterForm.endDate,
@@ -271,7 +293,14 @@
 						salerName: this.filterForm.salerName
 					})
 					if (res.code === 1000 && res.content) {
-						this.listData = res.content
+						if (isLoadMore) {
+							this.listData = [...this.listData, ...res.content]
+						} else {
+							this.listData = res.content
+						}
+						if (res.content.length < this.pageSize) {
+							this.hasMore = false
+						}
 					}
 				} catch (err) {
 					console.error('列表加载失败:', err)
@@ -280,7 +309,10 @@
 						icon: 'none'
 					})
 				} finally {
-					uni.hideLoading()
+					this.loading = false
+					if (!isLoadMore) {
+						uni.hideLoading()
+					}
 				}
 			},
 			resetFilter() {
@@ -707,6 +739,16 @@
 
 	.empty-text {
 		font-size: 32rpx;
+		color: #a8b0be;
+	}
+
+	.load-more {
+		padding: 30rpx 0;
+		text-align: center;
+	}
+
+	.load-more-text {
+		font-size: 26rpx;
 		color: #a8b0be;
 	}
 
