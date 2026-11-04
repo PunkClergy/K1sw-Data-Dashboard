@@ -47,7 +47,7 @@
 					</view>
 				</view>
 				<view class="card-footer">
-					<text class="expand-link" v-if="item.replycontent && item.replycontent.length > 300"
+					<text class="expand-link" v-if="item.replycontent && item.replycontent.length > 500"
 						@tap="item.textExpanded = !item.textExpanded">
 						{{ item.textExpanded ? '收起' : '显示详情' }}
 					</text>
@@ -213,7 +213,8 @@
 		getContactList,
 		getMoreContactList,
 		getCompanyInfo,
-		reviewContact
+		reviewContact,
+		getSellerList
 	} from '@/api'
 	export default {
 		data() {
@@ -224,7 +225,7 @@
 				step: '',
 				showFilter: false,
 				showFollowUp: false,
-				salesList: ['张伟', '李娜', '王强', '刘洋'],
+				salesList: ['刘天贵', '于雅泽', '宋金亮', '段振钢'],
 				filterForm: {
 					companyName: '',
 					salerName: '',
@@ -262,6 +263,7 @@
 			this.pageTitle = options.name || '节点列表'
 			this.step = options.name || ''
 			this.loadData()
+			this.loadSellerList()
 		},
 		onReachBottom() {
 			if (this.hasMore && !this.loading) {
@@ -270,6 +272,16 @@
 			}
 		},
 		methods: {
+			async loadSellerList() {
+				try {
+					const res = await getSellerList()
+					if (res.code === 1000 && res.content) {
+						this.salesList = res.content
+					}
+				} catch (err) {
+					console.error('销售员列表加载失败:', err)
+				}
+			},
 			async loadData(isLoadMore = false) {
 				if (this.loading) return
 				this.loading = true
