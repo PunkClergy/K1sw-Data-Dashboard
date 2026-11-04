@@ -287,9 +287,6 @@
 				this.loading = true
 
 				if (!isLoadMore) {
-					uni.showLoading({
-						title: '加载中...'
-					})
 					this.page = 1
 					this.hasMore = true
 				}
@@ -303,7 +300,7 @@
 						endDate: this.filterForm.endDate,
 						step: this.step,
 						salerName: this.filterForm.salerName
-					})
+					}, { loading: !isLoadMore })
 					if (res.code === 1000 && res.content) {
 						if (isLoadMore) {
 							this.listData = [...this.listData, ...res.content]
@@ -317,14 +314,11 @@
 				} catch (err) {
 					console.error('列表加载失败:', err)
 					uni.showToast({
-						title: '接口请求失败',
+						title: err.msg || '接口请求失败',
 						icon: 'none'
 					})
 				} finally {
 					this.loading = false
-					if (!isLoadMore) {
-						uni.hideLoading()
-					}
 				}
 			},
 			resetFilter() {

@@ -148,19 +148,14 @@
 
 			// 加载看板漏斗数据
 			async loadDashboardData() {
-				uni.showLoading({
-					title: '加载中...'
-				})
 				try {
 					const res = await getCompanyFunnel()
 					this.dashboardGroups = res?.content || []
 				} catch (err) {
 					uni.showToast({
-						title: '接口请求失败',
+						title: err.msg || '接口请求失败',
 						icon: 'none'
 					})
-				} finally {
-					uni.hideLoading()
 				}
 			},
 

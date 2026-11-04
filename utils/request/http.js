@@ -34,11 +34,18 @@ class Http {
 		this.baseURL = config.baseURL || DEFAULT_BASE_URL
 		this.interceptor = {}
 		this.authHeaderGetter = null
+		this.showLoading = true  // 全局默认开启 loading
+		this.loadingCount = 0    // 并发请求计数器
 	}
 
 	// 运行时切换基础地址
 	setBaseURL(url) {
 		this.baseURL = url || ''
+	}
+
+	// 设置全局 loading 开关
+	setLoading(enabled) {
+		this.showLoading = !!enabled
 	}
 
 	// 注册请求 / 响应拦截器：{ request(config) => config, response(res) => res }
@@ -49,6 +56,27 @@ class Http {
 	// 注册认证头工厂：返回 { 'Header-Name': value }；返回 null / {} 时不注入
 	setAuthHeaderGetter(fn) {
 		this.authHeaderGetter = typeof fn === 'function' ? fn : null
+	}
+
+	// 显示 loading
+	_showLoading() {
+		if (!this.showLoading) return
+		this.loadingCount++
+		if (this.loadingCount === 1) {
+			uni.showLoading({
+				title: '加载中...',
+				mask: true
+			})
+		}
+	}
+
+	// 隐藏 loading
+	_hideLoading() {
+		if (!this.showLoading) return
+		this.loadingCount = Math.max(0, this.loadingCount - 1)
+		if (this.loadingCount === 0) {
+			uni.hideLoading()
+		}
 	}
 
 	async request(config) {
@@ -98,6 +126,11 @@ class Http {
 		}
 		mergedConfig.header = header
 
+		// 自动 loading
+		if (mergedConfig.loading !== false) {
+			this._showLoading()
+		}
+
 		// 发起请求；网络层失败（断网、域名不通等）统一归一为错误对象
 		let response
 		try {
@@ -110,7 +143,14 @@ class Http {
 			})
 		} catch (err) {
 			console.error('网络请求失败:', err)
+			if (mergedConfig.loading !== false) {
+				this._hideLoading()
+			}
 			return Promise.reject({ code: -1, msg: '网络异常，请稍后重试', raw: err })
+		}
+
+		if (mergedConfig.loading !== false) {
+			this._hideLoading()
 		}
 
 		// 响应拦截器
