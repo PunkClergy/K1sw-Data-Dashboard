@@ -1,63 +1,71 @@
 <template>
 	<view class="page">
-		<!-- 自定义顶部导航 -->
-		<view class="nav-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
-			<view class="nav-content">
-				<view class="menu-btn" @tap="drawerOpen = true">
-					<view class="menu-icon">
-						<view class="menu-line"></view>
-						<view class="menu-line"></view>
-						<view class="menu-line"></view>
+		<!-- 顶部导航栏 -->
+		<view class="navbar" :style="{ paddingTop: statusBarHeight + 'px' }">
+			<view class="navbar__inner">
+				<view class="navbar__menu-btn" @tap="openDrawer">
+					<view class="navbar__menu-icon">
+						<view class="navbar__menu-line"></view>
+						<view class="navbar__menu-line"></view>
+						<view class="navbar__menu-line"></view>
 					</view>
 				</view>
-				<text class="nav-title">K1SW 数据看板</text>
-				<view class="nav-placeholder"></view>
+				<text class="navbar__title">K1SW 数据看板</text>
+				<view class="navbar__placeholder"></view>
 			</view>
 		</view>
 
 		<!-- 主内容区 -->
-		<view class="main" :style="{ paddingTop: (statusBarHeight + 56) + 'px' }">
-			<view class="welcome-card">
-				<text class="welcome-title">客户节点数量统计</text>
-				<text class="welcome-sub">只统计当前账号名下的客户</text>
+		<view class="content" :style="{ paddingTop: (statusBarHeight + 56) + 'px' }">
+			<!-- 欢迎横幅 -->
+			<view class="banner">
+				<text class="banner__title">{{activeName}}</text>
+				<text class="banner__sub">只统计当前账号名下的客户</text>
 			</view>
 
-			<view class="node-group" v-for="group in nodeGroups" :key="group.title">
-				<text class="group-title">{{ group.title }}</text>
-				<view class="card-grid">
-					<view class="stat-card" v-for="item in group.items" :key="item.label" @tap="goList(item)">
-						<view class="card-top" :style="{ background: item.color }"></view>
-						<view class="card-head">
-							<view class="card-dot" :style="{ background: item.color }"></view>
-							<text class="card-label">{{ item.label }}</text>
+			<!-- 看板分组卡片 -->
+			<view class="dashboard" v-for="group in dashboardGroups" :key="group.name">
+				<text class="dashboard__group-title">{{ group.name }}</text>
+				<view class="dashboard__cards">
+					<view class="dashboard__card" v-for="(item, idx) in group.value" :key="item.name"
+						@tap="onCardClick(item)">
+						<view class="dashboard__card-top" :style="{ background: getCardColor(idx) }"></view>
+						<view class="dashboard__card-head">
+							<view class="dashboard__card-dot" :style="{ background: getCardColor(idx) }"></view>
+							<text class="dashboard__card-label">{{ item.name }}</text>
 						</view>
-						<text class="card-num">{{ formatNum(item.value) }}</text>
-						<text class="card-unit">数量</text>
+						<text class="dashboard__card-num">{{ formatNumber(item.value) }}</text>
+						<text class="dashboard__card-unit">数量</text>
 					</view>
 				</view>
 			</view>
 		</view>
 
-		<!-- 遮罩层 -->
-		<view class="mask" :class="{ show: drawerOpen }" @tap="drawerOpen = false" @touchmove.stop.prevent></view>
+		<!-- 抽屉遮罩层 -->
+		<view class="drawer-mask" :class="{ 'drawer-mask--visible': isDrawerOpen }" @tap="closeDrawer"
+			@touchmove.stop.prevent></view>
 
-		<!-- 左侧滑出抽屉 -->
-		<view class="drawer" :class="{ open: drawerOpen }">
-			<view class="drawer-head">
-				<image class="drawer-logo" src="/static/images/logo.png" mode="aspectFit"></image>
-				<text class="drawer-name">K1SW 数据看板</text>
-				<text class="drawer-sub">WiseLink Fleet Digital Key</text>
+		<!-- 左侧抽屉导航 -->
+		<view class="drawer" :class="{ 'drawer--open': isDrawerOpen }">
+			<!-- 抽屉头部品牌区 -->
+			<view class="drawer__header">
+				<image class="drawer__logo" src="/static/images/logo.png" mode="aspectFit"></image>
+				<text class="drawer__brand">Wiselink K1SW</text>
+				<text class="drawer__slogan">Fleet Digital Key</text>
 			</view>
 
-			<view class="drawer-menu">
-				<view class="menu-item" v-for="item in menuList" :key="item.key" :class="{ active: activeMenu === item.key }" @tap="onMenuTap(item.key)">
-					<text class="menu-text">{{ item.name }}</text>
+			<!-- 抽屉菜单列表 -->
+			<scroll-view scroll-y class="drawer__menu">
+				<view class="drawer__menu-item" v-for="item in menuList" :key="item.id"
+					:class="{ 'drawer__menu-item--active': activeMenuId === item.id }" @tap="onMenuItemClick(item)">
+					<text class="drawer__menu-text">{{ item.name }}</text>
 				</view>
-			</view>
+			</scroll-view>
 
-			<view class="drawer-foot">
-				<view class="collapse-btn" @tap="drawerOpen = false">
-					<text class="collapse-text">收 起</text>
+			<!-- 抽屉底部收起按钮 -->
+			<view class="drawer__footer">
+				<view class="drawer__collapse-btn" @tap="closeDrawer">
+					<text class="drawer__collapse-text">收 起</text>
 				</view>
 			</view>
 		</view>
@@ -65,111 +73,140 @@
 </template>
 
 <script>
-	import { logout } from '@/api'
-	import { isLoggedIn } from '@/utils/auth'
+	import {
+		logout,
+		getMenuList,
+		getCompanyFunnel
+	} from '@/api'
+	import {
+		http
+	} from '@/utils/request/http'
+	import {
+		isLoggedIn
+	} from '@/utils/auth'
 
 	export default {
 		data() {
 			return {
 				statusBarHeight: 20,
-				drawerOpen: false,
-				activeMenu: 'ops',
-				menuList: [
-					{ key: 'funnel1', name: '销售漏斗运营 01' },
-					{ key: 'funnel2', name: '销售漏斗运营 02' },
-					{ key: 'ops', name: '运营协同（看板bug）' },
-					{ key: 'fdk', name: 'FDK开单' },
-					{ key: 'logistics', name: '物流安装' },
-					{ key: 'tech', name: '技术管理' },
-					{ key: 'finance', name: '财务' },
-					{ key: 'software', name: '软件设定' },
-					{ key: 'market', name: '市场中心' },
-					{ key: 'mgmt', name: '管理层' },
-					{ key: 'system', name: '系统管理' }
-				],
-				nodeGroups: [
-					{
-						title: '基础节点',
-						items: [
-							{ label: 'S0', value: 12860, color: '#22d3ee' },
-							{ label: 'S1', value: 8542, color: '#3b82f6' },
-							{ label: 'S0.5', value: 5210, color: '#3b82f6' }
-						]
-					},
-					{
-						title: '扩展节点',
-						items: [
-							{ label: 'S8', value: 3187, color: '#3b82f6' },
-							{ label: 'S6', value: 2456, color: '#f87171' },
-							{ label: 'S5', value: 1893, color: '#4ade80' }
-						]
-					},
-					{
-						title: '业务节点',
-						items: [
-							{ label: 'S7', value: 1204, color: '#fbbf24' },
-							{ label: 'SD', value: 865, color: '#4ade80' },
-							{ label: 'SZ', value: 49985, color: '#4ade80' }
-						]
-					},
-					{
-						title: '业务节点',
-						items: [
-							{ label: 'S7', value: 1204, color: '#fbbf24' },
-							{ label: 'SD', value: 865, color: '#4ade80' },
-							{ label: 'SZ', value: 49985, color: '#4ade80' }
-						]
-					},
-					{
-						title: '业务节点',
-						items: [
-							{ label: 'S7', value: 1204, color: '#fbbf24' },
-							{ label: 'SD', value: 865, color: '#4ade80' },
-							{ label: 'SZ', value: 49985, color: '#4ade80' }
-						]
-					},
-					{
-						title: '渠道节点',
-						items: [
-							{ label: 'SZ-LINKEDIN', value: 3217, color: '#3b82f6' }
-						]
-					}
-				]
+				isDrawerOpen: false,
+				activeMenuId: 2538,
+				activeName: '',
+				menuList: [],
+				dashboardGroups: []
 			}
 		},
 		onLoad() {
-			// #ifdef H5
-			this.statusBarHeight = 0
-			// #endif
-			// #ifndef H5
-			try {
-				const sys = uni.getSystemInfoSync()
-				this.statusBarHeight = sys.statusBarHeight || 20
-			} catch (e) {
-				this.statusBarHeight = 20
-			}
-			// #endif
+			this.initStatusBarHeight()
+			this.loadMenuData()
 		},
 		onShow() {
-			// 登录守卫：每次进入页面校验，无登录态时回到登录页
-			if (!isLoggedIn()) {
-				uni.reLaunch({ url: '/pages/login/index' })
-			}
+			this.checkLoginStatus()
 		},
 		methods: {
-			formatNum(n) {
-				return Number(n).toLocaleString('en-US')
+			// 初始化状态栏高度
+			initStatusBarHeight() {
+				// #ifdef H5
+				this.statusBarHeight = 0
+				// #endif
+				// #ifndef H5
+				try {
+					const sysInfo = uni.getSystemInfoSync()
+					this.statusBarHeight = sysInfo.statusBarHeight || 20
+				} catch (e) {
+					this.statusBarHeight = 20
+				}
+				// #endif
 			},
-			goList(item) {
+
+			// 登录守卫校验
+			checkLoginStatus() {
+				if (!isLoggedIn()) {
+					uni.reLaunch({
+						url: '/pages/login/index'
+					})
+				}
+			},
+
+			// 加载菜单列表
+			async loadMenuData() {
+				try {
+					const res = await getMenuList()
+					if (res.code === 1000 && res.content) {
+						this.menuList = res.content
+						// 默认选中第一条菜单并执行对应逻辑
+						if (this.menuList.length > 0) {
+							this.activeMenuId = this.menuList[0].id
+							this.activeName = this.menuList[0].name
+							this.onMenuItemClick(this.menuList[0])
+						}
+					}
+				} catch (err) {
+					console.error('菜单加载失败:', err)
+				}
+			},
+
+			// 加载看板漏斗数据
+			async loadDashboardData() {
+				uni.showLoading({
+					title: '加载中...'
+				})
+				try {
+					const res = await getCompanyFunnel()
+					this.dashboardGroups = res?.content || []
+				} catch (err) {
+					uni.showToast({
+						title: '接口请求失败',
+						icon: 'none'
+					})
+				} finally {
+					uni.hideLoading()
+				}
+			},
+
+			// 数字格式化（千分位）
+			formatNumber(num) {
+				return Number(num).toLocaleString('en-US')
+			},
+
+			// 卡片颜色循环取值
+			getCardColor(index) {
+				const colors = ['#22d3ee', '#3b82f6', '#4ade80', '#fbbf24', '#f87171', '#a78bfa']
+				return colors[index % colors.length]
+			},
+
+			// 卡片点击跳转列表页
+			onCardClick(item) {
 				uni.navigateTo({
-					url: '/pages/list/index?type=' + item.label + '&name=' + item.label + ' 节点列表'
+					url: `/pages/list/index?type=${item}&name=${item.name} 节点列表`
 				})
 			},
-			onMenuTap(key) {
-				this.drawerOpen = false
-				if (key === 'dashboard') return
-				uni.showToast({ title: '模块建设中', icon: 'none' })
+
+			// 菜单点击
+			onMenuItemClick(item) {
+				this.closeDrawer()
+				if (item.path) {
+					// 有 path 则跳转对应路径并携带参数
+					uni.navigateTo({
+						url: `${item.path}?name=${item.name}&id=${item.id}`
+					})
+				} else {
+					// 无 path 则在当前页面请求看板数据
+					this.loadDashboardData()
+				}
 			},
+
+			// 打开抽屉
+			openDrawer() {
+				this.isDrawerOpen = true
+			},
+
+			// 关闭抽屉
+			closeDrawer() {
+				this.isDrawerOpen = false
+			},
+
+			// 退出登录
 			handleLogout() {
 				uni.showModal({
 					title: '提示',
@@ -177,7 +214,9 @@
 					success: (res) => {
 						if (res.confirm) {
 							logout()
-							uni.reLaunch({ url: '/pages/login/index' })
+							uni.reLaunch({
+								url: '/pages/login/index'
+							})
 						}
 					}
 				})
@@ -192,8 +231,8 @@
 		background: linear-gradient(180deg, #f7f9fd 0%, #edf1f7 100%);
 	}
 
-	/* ===== 自定义导航栏 ===== */
-	.nav-bar {
+	/* ===== 顶部导航栏 ===== */
+	.navbar {
 		position: fixed;
 		top: 0;
 		left: 0;
@@ -203,7 +242,7 @@
 		box-shadow: 0 2rpx 12rpx rgba(31, 45, 74, 0.04);
 	}
 
-	.nav-content {
+	.navbar__inner {
 		height: 88rpx;
 		display: flex;
 		align-items: center;
@@ -211,7 +250,7 @@
 		padding: 0 24rpx;
 	}
 
-	.menu-btn {
+	.navbar__menu-btn {
 		width: 64rpx;
 		height: 64rpx;
 		display: flex;
@@ -219,35 +258,36 @@
 		justify-content: center;
 	}
 
-	.menu-icon {
+	.navbar__menu-icon {
 		width: 36rpx;
 		display: flex;
 		flex-direction: column;
 		gap: 6rpx;
 	}
 
-	.menu-line {
+	.navbar__menu-line {
 		height: 4rpx;
 		border-radius: 2rpx;
 		background: #1a2233;
 	}
 
-	.nav-title {
+	.navbar__title {
 		font-size: 32rpx;
 		font-weight: 600;
 		color: #1a2233;
 	}
 
-	.nav-placeholder {
+	.navbar__placeholder {
 		width: 64rpx;
 	}
 
 	/* ===== 主内容区 ===== */
-	.main {
+	.content {
 		padding: 32rpx 32rpx 48rpx;
 	}
 
-	.welcome-card {
+	/* ===== 欢迎横幅 ===== */
+	.banner {
 		position: relative;
 		background: linear-gradient(135deg, #2b6cb0 0%, #14b8a6 100%);
 		border-radius: 28rpx;
@@ -257,7 +297,7 @@
 		overflow: hidden;
 	}
 
-	.welcome-card::after {
+	.banner::after {
 		content: '';
 		position: absolute;
 		top: -60rpx;
@@ -268,7 +308,7 @@
 		background: rgba(255, 255, 255, 0.08);
 	}
 
-	.welcome-title {
+	.banner__title {
 		display: block;
 		font-size: 38rpx;
 		font-weight: 600;
@@ -276,7 +316,7 @@
 		letter-spacing: 2rpx;
 	}
 
-	.welcome-sub {
+	.banner__sub {
 		display: block;
 		margin-top: 12rpx;
 		font-size: 24rpx;
@@ -284,11 +324,12 @@
 		letter-spacing: 1rpx;
 	}
 
-	.node-group {
+	/* ===== 看板分组卡片 ===== */
+	.dashboard {
 		margin-bottom: 32rpx;
 	}
 
-	.group-title {
+	.dashboard__group-title {
 		display: inline-block;
 		font-size: 24rpx;
 		font-weight: 500;
@@ -300,13 +341,13 @@
 		letter-spacing: 1rpx;
 	}
 
-	.card-grid {
+	.dashboard__cards {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 20rpx;
 	}
 
-	.stat-card {
+	.dashboard__card {
 		position: relative;
 		width: calc((100% - 40rpx) / 3);
 		background: #ffffff;
@@ -318,12 +359,12 @@
 		transition: transform 0.2s, box-shadow 0.2s;
 	}
 
-	.stat-card:active {
+	.dashboard__card:active {
 		transform: scale(0.97);
 		box-shadow: 0 4rpx 12rpx rgba(31, 45, 74, 0.08);
 	}
 
-	.card-top {
+	.dashboard__card-top {
 		position: absolute;
 		top: 0;
 		left: 0;
@@ -332,27 +373,27 @@
 		opacity: 0.8;
 	}
 
-	.card-head {
+	.dashboard__card-head {
 		display: flex;
 		align-items: center;
 		gap: 10rpx;
 		margin-bottom: 18rpx;
 	}
 
-	.card-dot {
+	.dashboard__card-dot {
 		width: 10rpx;
 		height: 10rpx;
 		border-radius: 50%;
 	}
 
-	.card-label {
+	.dashboard__card-label {
 		font-size: 22rpx;
 		color: #8a93a6;
 		font-weight: 500;
 		letter-spacing: 0.5rpx;
 	}
 
-	.card-num {
+	.dashboard__card-num {
 		display: block;
 		font-size: 48rpx;
 		font-weight: 700;
@@ -361,7 +402,7 @@
 		letter-spacing: -0.5rpx;
 	}
 
-	.card-unit {
+	.dashboard__card-unit {
 		display: block;
 		margin-top: 14rpx;
 		font-size: 20rpx;
@@ -369,16 +410,8 @@
 		letter-spacing: 0.5rpx;
 	}
 
-	.panel-note {
-		display: block;
-		text-align: center;
-		margin-top: 40rpx;
-		font-size: 22rpx;
-		color: #a8b0be;
-	}
-
-	/* ===== 遮罩层 ===== */
-	.mask {
+	/* ===== 抽屉遮罩层 ===== */
+	.drawer-mask {
 		position: fixed;
 		top: 0;
 		left: 0;
@@ -391,12 +424,12 @@
 		transition: opacity 0.3s, visibility 0.3s;
 	}
 
-	.mask.show {
+	.drawer-mask--visible {
 		opacity: 1;
 		visibility: visible;
 	}
 
-	/* ===== 左侧滑出抽屉 ===== */
+	/* ===== 左侧抽屉导航 ===== */
 	.drawer {
 		position: fixed;
 		top: 0;
@@ -412,100 +445,67 @@
 		box-shadow: 4rpx 0 24rpx rgba(0, 0, 0, 0.08);
 	}
 
-	.drawer.open {
+	.drawer--open {
 		transform: translateX(0);
 	}
 
-	.drawer-head {
+	.drawer__header {
 		padding: 80rpx 40rpx 40rpx;
 		background: linear-gradient(135deg, #2b6cb0 0%, #14b8a6 100%);
 	}
 
-	.drawer-logo {
+	.drawer__logo {
 		width: 96rpx;
 		height: 96rpx;
 		margin-bottom: 20rpx;
 	}
 
-	.drawer-name {
+	.drawer__brand {
 		display: block;
 		font-size: 32rpx;
 		font-weight: 600;
 		color: #ffffff;
 	}
 
-	.drawer-sub {
+	.drawer__slogan {
 		display: block;
 		margin-top: 8rpx;
 		font-size: 22rpx;
 		color: rgba(255, 255, 255, 0.8);
 	}
 
-	.drawer-menu {
+	.drawer__menu {
 		flex: 1;
 		padding-top: env(safe-area-inset-top);
-		overflow-y: auto;
 	}
 
-	.menu-item {
+	.drawer__menu-item {
 		display: flex;
 		align-items: center;
 		padding: 28rpx 32rpx;
 	}
 
-	.menu-item.back {
-		padding: 32rpx;
-	}
-
-	.back-arrow {
-		width: 48rpx;
-		height: 48rpx;
-		position: relative;
-	}
-
-	.back-line {
-		position: absolute;
-		top: 50%;
-		left: 8rpx;
-		width: 24rpx;
-		height: 4rpx;
-		background: #1a2233;
-		transform: translateY(-50%) rotate(45deg);
-	}
-
-	.back-line::after {
-		content: '';
-		position: absolute;
-		left: 0;
-		top: -8rpx;
-		width: 16rpx;
-		height: 16rpx;
-		border-left: 4rpx solid #1a2233;
-		border-bottom: 4rpx solid #1a2233;
-		transform: rotate(45deg);
-	}
-
-	.menu-item.active {
+	.drawer__menu-item--active {
 		background: #f0f7ff;
 	}
 
-	.menu-text {
+	.drawer__menu-text {
 		font-size: 26rpx;
 		color: #1a2233;
 		font-weight: 500;
 	}
 
-	.menu-item.active .menu-text {
+	.drawer__menu-item--active .drawer__menu-text {
 		color: #2b6cb0;
 		font-weight: 600;
 	}
 
-	.drawer-foot {
+	.drawer__footer {
 		padding: 24rpx 40rpx calc(40rpx + env(safe-area-inset-bottom));
 		border-top: 1rpx solid #eef1f6;
 	}
 
-	.collapse-btn {
+	.drawer__collapse-btn {
 		height: 80rpx;
 		display: flex;
 		align-items: center;
@@ -514,7 +514,7 @@
 		border-radius: 40rpx;
 	}
 
-	.collapse-text {
+	.drawer__collapse-text {
 		font-size: 28rpx;
 		color: #4a5568;
 		letter-spacing: 2rpx;

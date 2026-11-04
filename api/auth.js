@@ -7,7 +7,7 @@ import { clearAuth } from '@/utils/auth'
 // 表单字段：
 //   username   账号（必填）
 //   password   密码（必填）
-export const login = (data) => http.postFormData('/api/login', data)
+export const login = (data) => http.postFormData('/k1swUserApi/login', data)
 
 // 退出登录：清除本地登录态
 export const logout = () => clearAuth()

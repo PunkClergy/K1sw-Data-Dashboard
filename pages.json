@@ -23,6 +23,14 @@
 				"navigationBarBackgroundColor": "#F7F9FD",
 				"navigationBarTextStyle": "black"
 			}
+		},
+		{
+			"path": "pages/test/test",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarBackgroundColor": "#F7F9FD",
+				"navigationBarTextStyle": "black"
+			}
 		}
 	],
 	"globalStyle": {
