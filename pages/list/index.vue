@@ -1,5 +1,5 @@
 <template>
-	<view class="page">
+	<view class="page" :class="{ 'page-locked': showFilter || showFollowUp || showCompanyInfo || showAction }">
 		<!-- 自定义导航栏 -->
 		<view class="nav-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
 			<view class="nav-content">
@@ -430,6 +430,12 @@
 	.page {
 		min-height: 100vh;
 		background: linear-gradient(180deg, #f7f9fd 0%, #edf1f7 100%);
+	}
+
+	.page-locked {
+		overflow: hidden;
+		position: fixed;
+		width: 100%;
 	}
 
 	/* ===== 导航栏 ===== */
