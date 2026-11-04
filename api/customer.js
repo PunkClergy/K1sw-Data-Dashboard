@@ -11,3 +11,15 @@ export const getMenuList = () => http.get('/k1swMenuApi/menulist')
 
 // 获取公司漏斗数据
 export const getCompanyFunnel = () => http.get('/reportApi/companyFunnel')
+
+// 获取联系人列表
+// params: { page, pageSize, companyName, startDate, endDate, step, salerName }
+export const getContactList = (params) => http.get('/contaceApi/contactList', params)
+
+// 获取跟进记录详情
+// params: { orderid, type }
+export const getMoreContactList = (params) => http.get('/contaceApi/moreContactList', params)
+
+// 获取公司详情
+// params: { orderid, type }
+export const getCompanyInfo = (params) => http.get('/contaceApi/companyInfo', params)

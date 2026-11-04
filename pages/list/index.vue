@@ -13,15 +13,12 @@
 			</view>
 		</view>
 
-		<!-- 工具条：筛选 + 列设置 -->
+		<!-- 工具条：筛选 -->
 		<view class="toolbar" :style="{ top: (statusBarHeight + 44) + 'px' }">
 			<view class="toolbar-left">
 				<view class="tool-chip" @tap="showFilter = true">
 					<text class="tool-text">筛选</text>
 					<view class="tool-arrow"></view>
-				</view>
-				<view class="tool-chip" @tap="showColSetting = true">
-					<text class="tool-text">列设置</text>
 				</view>
 			</view>
 			<view class="toolbar-right">
@@ -32,103 +29,39 @@
 		<!-- 列表内容 -->
 		<view class="list" :style="{ paddingTop: (statusBarHeight + 100) + 'px' }">
 			<view class="list-card" v-for="item in listData" :key="item.id">
-				<!-- 卡片头部：公司名称 + 状态 -->
+				<!-- 卡片头部：公司名称 -->
 				<view class="card-head">
 					<view class="head-left">
-						<text class="company-name">{{ item.company }}</text>
+						<text class="company-name">{{ item.createdate }}</text>
 					</view>
 					<view class="head-right">
-						<view class="mini-btn" @tap="openFollowUp(item)">
-							<text class="mini-text">跟进记录</text>
-						</view>
+						<text class="more-btn" @tap="openCompanyInfo(item)">更多</text>
 					</view>
 				</view>
 
 				<!-- 卡片字段：默认重要字段 -->
-				<!-- 默认显示：销售人员、最新联络、国家、信息渠道 -->
 				<view class="field-grid">
-					<view class="field-item">
-						<text class="field-label">销售人员</text>
-						<text class="field-value">{{ item.sales }}</text>
-					</view>
-					<view class="field-item">
-						<text class="field-label">最新联络</text>
-						<text class="field-value">{{ item.lastContact }}</text>
-					</view>
-					<view class="field-item">
-						<text class="field-label">国家</text>
-						<text class="field-value">{{ item.country }}</text>
-					</view>
-					<view class="field-item">
-						<text class="field-label">信息渠道</text>
-						<text class="field-value">{{ item.channel }}</text>
+					<view class="field-item full-width">
+						<text class="field-value"
+							:class="{ 'text-clamp': !item.textExpanded }">{{ item.replycontent || '' }}</text>
 					</view>
 				</view>
-
-				<!-- 展开：列设置对应的字段 -->
-				<view class="field-grid" v-if="item.expanded">
-					<view class="field-item" v-for="f in getVisibleFields(item)" :key="f.key"
-						:class="{ 'full-width': isLong(f.value) }">
-						<text class="field-label">{{ f.label }}</text>
-						<text class="field-value ellipsis" :class="{ link: f.copyable }"
-							@tap="f.copyable ? copyText(f.value) : null">{{ f.value }}</text>
-					</view>
-				</view>
-
-				<!-- 展开/收起 -->
-				<view class="expand-bar">
-					<view class="expand-left" @tap="toggleExpand(item)">
-						<text class="expand-text">{{ item.expanded ? '收起' : '展开详情' }}</text>
-						<view class="expand-arrow" :class="{ up: item.expanded }"></view>
-					</view>
-					<view class="expand-right">
-						<text class="contact-link-text" @tap="openContacts(item)">联系人</text>
-						<text class="action-link-text" @tap="openActions(item)">操作</text>
+				<view class="card-footer">
+					<text class="expand-link" v-if="item.replycontent && item.replycontent.length > 300"
+						@tap="item.textExpanded = !item.textExpanded">
+						{{ item.textExpanded ? '收起' : '显示详情' }}
+					</text>
+					<view class="footer-actions">
+						<text class="action-link" @tap="openFollowUp(item)">跟进记录</text>
+						<view class="mini-btn">
+							<text class="mini-text">操作</text>
+						</view>
 					</view>
 				</view>
 			</view>
 
 			<view class="list-empty" v-if="listData.length === 0">
 				<text class="empty-text">暂无数据</text>
-			</view>
-		</view>
-
-		<!-- 列设置弹窗 -->
-		<view class="col-mask" :class="{ show: showColSetting }" @tap="showColSetting = false" @touchmove.stop.prevent>
-			<view class="col-panel" @tap.stop>
-				<view class="col-panel-head">
-					<text class="col-panel-title">列显示设置</text>
-					<text class="col-close" @tap="showColSetting = false">关闭</text>
-				</view>
-				<scroll-view scroll-y class="col-list">
-					<view class="col-grid">
-						<view class="col-item" v-for="col in allColumns" :key="col.key" @tap="toggleCol(col.key)">
-							<view class="checkbox" :class="{ checked: visibleCols.includes(col.key) }">
-								<view class="check-mark" v-if="visibleCols.includes(col.key)"></view>
-							</view>
-							<text class="col-name">{{ col.name }}</text>
-						</view>
-					</view>
-				</scroll-view>
-				<view class="col-foot">
-					<view class="col-btn reset" @tap="resetCols">重置</view>
-					<view class="col-btn apply" @tap="applyCols">确定</view>
-				</view>
-			</view>
-		</view>
-
-		<!-- 操作菜单弹窗 -->
-		<view class="action-mask" :class="{ show: showActions }" @tap="showActions = false" @touchmove.stop.prevent>
-			<view class="action-panel" @tap.stop>
-				<view class="action-head">
-					<text class="action-title">{{ currentItem ? currentItem.company : '' }} - 操作</text>
-					<text class="action-close" @tap="showActions = false">关闭</text>
-				</view>
-				<view class="action-grid">
-					<view class="action-item" v-for="act in actionList" :key="act" @tap="doAction(act)">
-						<text class="action-item-text">{{ act }}</text>
-					</view>
-				</view>
 			</view>
 		</view>
 
@@ -143,16 +76,12 @@
 					<view class="filter-form">
 						<view class="form-row">
 							<text class="form-label">公司名称</text>
-							<input class="form-input" v-model="filterForm.company" placeholder="请输入" />
-						</view>
-						<view class="form-row">
-							<text class="form-label">电话</text>
-							<input class="form-input" v-model="filterForm.phone" placeholder="请输入" />
+							<input class="form-input" v-model="filterForm.companyName" placeholder="请输入" />
 						</view>
 						<view class="form-row">
 							<text class="form-label">销售员</text>
 							<picker class="form-picker" :range="salesList" @change="onSalesChange">
-								<view class="form-picker-value">{{ filterForm.sales || '请选择' }}</view>
+								<view class="form-picker-value">{{ filterForm.salerName || '请选择' }}</view>
 							</picker>
 						</view>
 						<view class="form-row">
@@ -167,32 +96,6 @@
 								</picker>
 							</view>
 						</view>
-						<view class="form-row">
-							<text class="form-label">跟进状态</text>
-							<input class="form-input" v-model="filterForm.followStatus" placeholder="请输入" />
-						</view>
-						<view class="form-row">
-							<text class="form-label">等级</text>
-							<picker class="form-picker" :range="levelList" @change="onLevelChange">
-								<view class="form-picker-value">{{ filterForm.level || '请选择' }}</view>
-							</picker>
-						</view>
-						<view class="form-row">
-							<text class="form-label">任务类型</text>
-							<input class="form-input" v-model="filterForm.taskType" placeholder="请输入" />
-						</view>
-						<view class="form-row">
-							<text class="form-label">邮箱</text>
-							<input class="form-input" v-model="filterForm.email" placeholder="请输入" />
-						</view>
-						<view class="form-row">
-							<text class="form-label">领英</text>
-							<input class="form-input" v-model="filterForm.linkedin" placeholder="请输入" />
-						</view>
-						<view class="form-row">
-							<text class="form-label">WhatsApp</text>
-							<input class="form-input" v-model="filterForm.whatsapp" placeholder="请输入" />
-						</view>
 					</view>
 				</scroll-view>
 				<view class="filter-foot">
@@ -202,66 +105,73 @@
 			</view>
 		</view>
 
+		<!-- 公司详情弹窗 -->
+		<view class="info-mask" :class="{ show: showCompanyInfo }" @tap="showCompanyInfo = false"
+			@touchmove.stop.prevent>
+			<view class="info-panel" @tap.stop>
+				<view class="info-header">
+					<view class="info-header-bar"></view>
+					<view class="info-head">
+						<text class="info-title">更多详情</text>
+						<view class="info-close-btn" @tap="showCompanyInfo = false">
+							<text class="info-close">✕</text>
+						</view>
+					</view>
+				</view>
+				<scroll-view scroll-y class="info-body" v-if="companyInfo">
+					<view class="info-card">
+						<view class="info-card-item">
+							<text class="info-label">绑定销售员</text>
+							<text class="info-value">{{ companyInfo.salespersonName || '-' }}</text>
+						</view>
+					</view>
+					<view class="info-card">
+						<view class="info-card-item">
+							<text class="info-label">公司名称</text>
+							<text class="info-value">{{ companyInfo.name || '-' }}</text>
+						</view>
+					</view>
+					<view class="info-card">
+						<view class="info-card-item">
+							<text class="info-label">公司介绍</text>
+							<text class="info-value">{{ companyInfo.companyprofile || '-' }}</text>
+						</view>
+					</view>
+					<view class="info-card">
+						<view class="info-card-item">
+							<text class="info-label">知彼2内容</text>
+							<text class="info-value">{{ companyInfo.know2 || '-' }}</text>
+						</view>
+					</view>
+				</scroll-view>
+			</view>
+		</view>
+
 		<!-- 跟进记录弹窗 -->
 		<view class="follow-mask" :class="{ show: showFollowUp }" @tap="showFollowUp = false" @touchmove.stop.prevent>
 			<view class="follow-panel" @tap.stop>
-				<view class="follow-head">
-					<text class="follow-title">{{ currentItem ? currentItem.company : '' }} - 跟进记录</text>
-					<text class="follow-close" @tap="showFollowUp = false">关闭</text>
+				<view class="follow-header">
+					<view class="follow-header-bar"></view>
+					<view class="follow-head">
+						<text class="follow-title">沟通记录</text>
+						<view class="follow-close-btn" @tap="showFollowUp = false">
+							<text class="follow-close">✕</text>
+						</view>
+					</view>
 				</view>
 
 				<scroll-view scroll-y class="follow-history">
 					<view class="history-item" v-for="(h, i) in followHistory" :key="i">
-						<view class="history-dot"></view>
-						<view class="history-body">
-							<text class="history-time">{{ h.time }}</text>
-							<text class="history-text">{{ h.content }}</text>
+						<view class="history-card">
+							<view class="history-time-row">
+								<view class="history-dot"></view>
+								<text class="history-time">{{ h.createdate }}</text>
+							</view>
+							<text class="history-text">{{ h.replycontent }}</text>
 						</view>
 					</view>
 					<view class="history-empty" v-if="followHistory.length === 0">
-						<text class="empty-text">暂无跟进记录</text>
-					</view>
-				</scroll-view>
-
-				<view class="follow-input-bar">
-					<textarea class="follow-textarea" v-model="followContent" placeholder="输入跟进内容..." maxlength="500" />
-					<view class="send-btn" @tap="submitFollowUp">
-						<text class="send-text">发送</text>
-					</view>
-				</view>
-			</view>
-		</view>
-
-		<!-- 联系人弹窗 -->
-		<view class="contact-mask" :class="{ show: showContacts }" @tap="showContacts = false" @touchmove.stop.prevent>
-			<view class="contact-panel" @tap.stop>
-				<view class="contact-head">
-					<text class="contact-title">{{ currentItem ? currentItem.company : '' }} - 联系人</text>
-					<text class="contact-close" @tap="showContacts = false">关闭</text>
-				</view>
-				<scroll-view scroll-y class="contact-list">
-					<view class="contact-item" v-for="(c, i) in contactList" :key="i">
-						<view class="contact-avatar">
-							<text class="contact-avatar-text">{{ c.name.charAt(0) }}</text>
-						</view>
-						<view class="contact-body">
-							<text class="contact-name">{{ c.name }}</text>
-							<view class="contact-row">
-								<text class="contact-label">电话</text>
-								<text class="contact-value link" @tap="copyText(c.phone)">{{ c.phone }}</text>
-							</view>
-							<view class="contact-row">
-								<text class="contact-label">邮箱</text>
-								<text class="contact-value link" @tap="copyText(c.email)">{{ c.email }}</text>
-							</view>
-							<view class="contact-row">
-								<text class="contact-label">领英</text>
-								<text class="contact-value link" @tap="copyText(c.linkedin)">{{ c.linkedin }}</text>
-							</view>
-						</view>
-					</view>
-					<view class="contact-empty" v-if="contactList.length === 0">
-						<text class="empty-text">暂无联系人</text>
+						<text class="empty-text">暂无沟通记录</text>
 					</view>
 				</scroll-view>
 			</view>
@@ -271,147 +181,31 @@
 
 <script>
 	import {
-		getCustomerList
+		getContactList,
+		getMoreContactList,
+		getCompanyInfo
 	} from '@/api'
-	import {
-		mockCustomerList,
-		mockFollowUpHistory
-	} from '@/mock/customer'
 	export default {
 		data() {
 			return {
 				statusBarHeight: 20,
 				nodeType: '',
 				pageTitle: '节点列表',
-				showColSetting: false,
+				step: '',
 				showFilter: false,
-				showActions: false,
 				showFollowUp: false,
-				showContacts: false,
-				actionList: ['编辑', '发送邮件', '转S0触达', '申请转SD', '已发linkin', '已发whatsapp'],
 				salesList: ['张伟', '李娜', '王强', '刘洋'],
-				levelList: ['Level-1', 'Level-2', 'Level-3', 'Level-4'],
-				filterStatus: '',
-				filterChannel: '',
 				filterForm: {
-					company: '',
-					phone: '',
-					sales: '',
+					companyName: '',
+					salerName: '',
 					startDate: '',
-					endDate: '',
-					followStatus: '',
-					level: '',
-					taskType: '',
-					email: '',
-					linkedin: '',
-					whatsapp: ''
+					endDate: ''
 				},
 				currentItem: null,
-				followContent: '',
 				followHistory: [],
-				contactList: [],
-				visibleCols: ['company', 'sales', 'lastContact', 'country', 'channel', 'followTime', 'scale', 'email',
-					'phone'
-				],
-				allColumns: [{
-						key: 'company',
-						name: '公司名称'
-					},
-					{
-						key: 'sales',
-						name: '销售人员'
-					},
-					{
-						key: 'lastContact',
-						name: '最新联络'
-					},
-
-					{
-						key: 'website',
-						name: '公司网站'
-					},
-					{
-						key: 'country',
-						name: '国家'
-					},
-
-					{
-						key: 'channel',
-						name: '信息渠道'
-					},
-
-					{
-						key: 'followTime',
-						name: '跟进时间'
-					},
-
-					{
-						key: 'remark',
-						name: '公司备注'
-					},
-					{
-						key: 'findTime',
-						name: '发现时间'
-					},
-					{
-						key: 'intro',
-						name: '公司简介'
-					},
-					{
-						key: 'address',
-						name: '公司地址'
-					},
-					{
-						key: 'email',
-						name: '公司邮箱'
-					},
-					{
-						key: 'phone',
-						name: '公司电话'
-					},
-					{
-						key: 'scale',
-						name: '公司规模'
-					},
-					{
-						key: 'foundTime',
-						name: '公司成立时间'
-					},
-
-					{
-						key: 'contactCount',
-						name: '联系人数量'
-					},
-					{
-						key: 'linkedin',
-						name: 'LinkedIn'
-					},
-					{
-						key: 'facebook',
-						name: 'Facebook'
-					},
-					{
-						key: 'instagram',
-						name: 'Instagram'
-					},
-					{
-						key: 'youtube',
-						name: 'YouTube'
-					},
-					{
-						key: 'x',
-						name: 'X'
-					},
-					{
-						key: 'line',
-						name: 'Line'
-					},
-					{
-						key: 'whatsapp',
-						name: 'WhatsApp'
-					}
-				],
-				listData: []
+				listData: [],
+				showCompanyInfo: false,
+				companyInfo: null
 			}
 		},
 		onLoad(options) {
@@ -429,67 +223,47 @@
 
 			this.nodeType = options.type || ''
 			this.pageTitle = options.name || '节点列表'
-			// 从缓存读取列设置
-			try {
-				const saved = uni.getStorageSync('visibleCols')
-				if (saved) {
-					this.visibleCols = JSON.parse(saved)
-				}
-			} catch (e) {}
+			this.step = options.name || ''
 			this.loadData()
 		},
 		methods: {
-			loadData() {
-				this.listData = mockCustomerList.map(item => ({
-					id: item.id,
-					company: item.companyname,
-					status: item.followstatus,
-					statusType: 'ok',
-					sales: item.salepersonName || '-',
-					lastContact: item.followtime ? item.followtime.substring(0, 16) : '-',
-					country: item.country || '-',
-					channel: item.channel || '-',
-					followTime: item.followtime ? item.followtime.substring(0, 16) : '-',
-					scale: item.companysize || '-',
-					email: item.email || '-',
-					phone: item.linkmobile || '-',
-					level: item.level || '-',
-					website: item.website || '-',
-					address: item.address || '-',
-					linkedin: item.linkedin || '-',
-					whatsapp: item.whatsapp || '-',
-					contacts: item.crmSzImproveContactList || [],
-					expanded: false
-				}))
-			},
-			toggleCol(key) {
-				const idx = this.visibleCols.indexOf(key)
-				if (idx > -1) {
-					this.visibleCols.splice(idx, 1)
-				} else {
-					this.visibleCols.push(key)
+			async loadData() {
+				uni.showLoading({
+					title: '加载中...'
+				})
+				try {
+					const res = await getContactList({
+						page: 1,
+						pageSize: 20,
+						companyName: this.filterForm.companyName,
+						startDate: this.filterForm.startDate,
+						endDate: this.filterForm.endDate,
+						step: this.step,
+						salerName: this.filterForm.salerName
+					})
+					if (res.code === 1000 && res.content) {
+						this.listData = res.content
+					}
+				} catch (err) {
+					console.error('列表加载失败:', err)
+					uni.showToast({
+						title: '接口请求失败',
+						icon: 'none'
+					})
+				} finally {
+					uni.hideLoading()
 				}
 			},
 			resetFilter() {
 				this.filterForm = {
-					company: '',
-					phone: '',
-					sales: '',
+					companyName: '',
+					salerName: '',
 					startDate: '',
-					endDate: '',
-					followStatus: '',
-					level: '',
-					taskType: '',
-					email: '',
-					linkedin: '',
-					whatsapp: ''
+					endDate: ''
 				}
 			},
 			onSalesChange(e) {
-				this.filterForm.sales = this.salesList[e.detail.value]
-			},
-			onLevelChange(e) {
-				this.filterForm.level = this.levelList[e.detail.value]
+				this.filterForm.salerName = this.salesList[e.detail.value]
 			},
 			onStartDateChange(e) {
 				this.filterForm.startDate = e.detail.value
@@ -508,155 +282,49 @@
 					}
 				})
 			},
-			openActions(item) {
-				this.currentItem = item
-				this.showActions = true
-			},
-			doAction(act) {
-				uni.showToast({
-					title: act,
-					icon: 'none'
-				})
-				this.showActions = false
-			},
-			resetCols() {
-				this.visibleCols = ['company', 'sales', 'lastContact', 'country', 'channel', 'followTime', 'scale',
-					'email', 'phone'
-				]
-			},
-			applyCols() {
-				uni.setStorageSync('visibleCols', JSON.stringify(this.visibleCols))
-				this.showColSetting = false
-				uni.showToast({
-					title: '列设置已应用',
-					icon: 'none'
-				})
-			},
 			applyFilter() {
 				this.showFilter = false
-				uni.showToast({
-					title: '筛选已应用',
-					icon: 'none'
-				})
+				this.loadData()
 			},
-			toggleExpand(item) {
-				item.expanded = !item.expanded
-			},
-			isLong(val) {
-				return val && val.length > 25
-			},
-			getVisibleFields(item) {
-				const fieldMap = {
-					company: {
-						label: '公司名称',
-						value: item.company
-					},
-					sales: {
-						label: '销售人员',
-						value: item.sales
-					},
-					lastContact: {
-						label: '最新联络',
-						value: item.lastContact
-					},
-					country: {
-						label: '国家',
-						value: item.country
-					},
-					channel: {
-						label: '信息渠道',
-						value: item.channel
-					},
-					followTime: {
-						label: '跟进时间',
-						value: item.followTime
-					},
-					scale: {
-						label: '公司规模',
-						value: item.scale
-					},
-					email: {
-						label: '公司邮箱',
-						value: item.email,
-						copyable: true
-					},
-					phone: {
-						label: '公司电话',
-						value: item.phone,
-						copyable: true
-					},
-					level: {
-						label: '等级',
-						value: item.level
-					},
-					website: {
-						label: '公司网站',
-						value: item.website,
-						copyable: true
-					},
-					address: {
-						label: '公司地址',
-						value: item.address
-					},
-					linkedin: {
-						label: 'LinkedIn',
-						value: item.linkedin,
-						copyable: true
-					},
-					whatsapp: {
-						label: 'WhatsApp',
-						value: item.whatsapp,
-						copyable: true
-					}
-				}
-				// 排除默认显示的4个字段：sales、lastContact、country、channel
-				// 排除公司名称：company（卡片头部已显示）
-				const excludeKeys = ['sales', 'lastContact', 'country', 'channel', 'company']
-				return this.visibleCols
-					.filter(key => !excludeKeys.includes(key))
-					.map(key => fieldMap[key])
-					.filter(f => f && f.value && f.value !== '-')
-			},
-			openContacts(item) {
+			async openFollowUp(item) {
 				this.currentItem = item
-				this.contactList = (item.contacts || []).map(c => ({
-					name: c.linkman || '-',
-					phone: c.mobile || '-',
-					email: c.email || '-',
-					linkedin: c.linkin || '-'
-				}))
-				this.showContacts = true
-			},
-			openFollowUp(item) {
-				this.currentItem = item
-				this.followHistory = mockFollowUpHistory[item.id] || []
-				this.followContent = ''
 				this.showFollowUp = true
-			},
-			submitFollowUp() {
-				if (!this.followContent.trim()) {
+				try {
+					const res = await getMoreContactList({
+						orderid: item.orderid,
+						type: item.type
+					})
+					if (res.code === 1000 && res.content) {
+						this.followHistory = res.content
+					}
+				} catch (err) {
+					console.error('跟进记录加载失败:', err)
 					uni.showToast({
-						title: '请输入内容',
+						title: '接口请求失败',
 						icon: 'none'
 					})
-					return
 				}
-				const now = new Date()
-				const time = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now
-					.getDate()).padStart(2, '0') + ' ' + String(now.getHours()).padStart(2, '0') + ':' + String(now
-					.getMinutes()).padStart(2, '0')
-				this.followHistory.unshift({
-					time,
-					content: this.followContent.trim()
-				})
-				this.followContent = ''
-				uni.showToast({
-					title: '已发送',
-					icon: 'success'
-				})
 			},
 			goBack() {
 				uni.navigateBack()
+			},
+			async openCompanyInfo(item) {
+				this.showCompanyInfo = true
+				try {
+					const res = await getCompanyInfo({
+						orderid: item.orderid,
+						type: item.type
+					})
+					if (res.code === 1000 && res.content) {
+						this.companyInfo = res.content
+					}
+				} catch (err) {
+					console.error('公司详情加载失败:', err)
+					uni.showToast({
+						title: '接口请求失败',
+						icon: 'none'
+					})
+				}
 			}
 		}
 	}
@@ -724,7 +392,7 @@
 	}
 
 	.nav-title {
-		font-size: 36rpx;
+		font-size: 38rpx;
 		font-weight: 600;
 		color: #1a2233;
 	}
@@ -762,7 +430,7 @@
 	}
 
 	.tool-text {
-		font-size: 24rpx;
+		font-size: 26rpx;
 		color: #2b6cb0;
 		font-weight: 500;
 	}
@@ -777,7 +445,7 @@
 	}
 
 	.result-count {
-		font-size: 26rpx;
+		font-size: 28rpx;
 		color: #8a93a6;
 		font-weight: 500;
 	}
@@ -817,13 +485,18 @@
 	}
 
 	.company-name {
-		font-size: 34rpx;
+		font-size: 36rpx;
 		font-weight: 600;
 		color: #1a2233;
 	}
 
+	.more-btn {
+		font-size: 26rpx;
+		color: #6b7280;
+	}
+
 	.status-tag {
-		font-size: 24rpx;
+		font-size: 26rpx;
 		padding: 4rpx 14rpx;
 		border-radius: 20rpx;
 	}
@@ -854,7 +527,7 @@
 	}
 
 	.follow-btn-text {
-		font-size: 26rpx;
+		font-size: 28rpx;
 		color: #2b6cb0;
 	}
 
@@ -871,56 +544,15 @@
 	}
 
 	.mini-text {
-		font-size: 24rpx;
+		font-size: 26rpx;
 		color: #2b6cb0;
 		font-weight: 500;
 	}
 
-	.expand-bar {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding-top: 16rpx;
-		margin-top: 8rpx;
-		border-top: 1rpx solid #f0f2f5;
-	}
-
-	.expand-left {
-		display: flex;
-		align-items: center;
-	}
-
-	.expand-text {
-		font-size: 24rpx;
+	.action-link {
+		font-size: 26rpx;
 		color: #2b6cb0;
 		font-weight: 500;
-		margin-right: 8rpx;
-	}
-
-	.expand-arrow {
-		width: 12rpx;
-		height: 12rpx;
-		border-right: 3rpx solid #2b6cb0;
-		border-bottom: 3rpx solid #2b6cb0;
-		transform: rotate(45deg);
-		transition: transform 0.2s;
-	}
-
-	.expand-arrow.up {
-		transform: rotate(-135deg);
-	}
-
-	.contact-link-text {
-		font-size: 24rpx;
-		color: #2b6cb0;
-		font-weight: 500;
-	}
-
-	.action-link-text {
-		font-size: 24rpx;
-		color: #2b6cb0;
-		font-weight: 500;
-		margin-left: 24rpx;
 	}
 
 	.head-arrow {
@@ -954,13 +586,13 @@
 
 	.field-label {
 		display: block;
-		font-size: 24rpx;
+		font-size: 26rpx;
 		color: #a8b0be;
 		margin-bottom: 6rpx;
 	}
 
 	.field-value {
-		font-size: 26rpx;
+		font-size: 28rpx;
 		color: #4a5568;
 	}
 
@@ -974,140 +606,44 @@
 		color: #2b6cb0;
 	}
 
+	.text-clamp {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		display: -webkit-box;
+		-webkit-line-clamp: 3;
+		-webkit-box-orient: vertical;
+	}
+
+	.card-footer {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-top: 20rpx;
+		padding-top: 20rpx;
+		border-top: 1rpx solid #f0f2f5;
+	}
+
+	.footer-actions {
+		display: flex;
+		align-items: center;
+		gap: 16rpx;
+		margin-left: auto;
+	}
+
+	.expand-link {
+		font-size: 26rpx;
+		color: #2b6cb0;
+		font-weight: 500;
+	}
+
 	.list-empty {
 		padding: 120rpx 0;
 		text-align: center;
 	}
 
 	.empty-text {
-		font-size: 30rpx;
+		font-size: 32rpx;
 		color: #a8b0be;
-	}
-
-	/* ===== 列设置弹窗 ===== */
-	.col-mask {
-		position: fixed;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background: rgba(0, 0, 0, 0.4);
-		z-index: 30;
-		opacity: 0;
-		visibility: hidden;
-		transition: opacity 0.3s, visibility 0.3s;
-	}
-
-	.col-mask.show {
-		opacity: 1;
-		visibility: visible;
-	}
-
-	.col-panel {
-		position: absolute;
-		bottom: 0;
-		left: 0;
-		right: 0;
-		height: 70vh;
-		background: #ffffff;
-		border-radius: 28rpx 28rpx 0 0;
-		display: flex;
-		flex-direction: column;
-	}
-
-	.col-panel-head {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 32rpx 32rpx 24rpx;
-		border-bottom: 1rpx solid #f0f2f5;
-	}
-
-	.col-panel-title {
-		font-size: 34rpx;
-		font-weight: 600;
-		color: #1a2233;
-	}
-
-	.col-close {
-		font-size: 30rpx;
-		color: #2b6cb0;
-		font-weight: 500;
-		min-width: 80rpx;
-		text-align: right;
-	}
-
-	.col-list {
-		height: 55vh;
-		padding: 16rpx 32rpx 48rpx;
-	}
-
-	.col-grid {
-		display: flex;
-		flex-wrap: wrap;
-	}
-
-	.col-item {
-		width: 33.33%;
-		display: flex;
-		align-items: center;
-		padding: 16rpx 0;
-	}
-
-	.checkbox {
-		width: 32rpx;
-		height: 32rpx;
-		border: 2rpx solid #c8d0dc;
-		border-radius: 8rpx;
-		margin-right: 12rpx;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.checkbox.checked {
-		background: #2b6cb0;
-		border-color: #2b6cb0;
-	}
-
-	.check-mark {
-		width: 16rpx;
-		height: 10rpx;
-		border-left: 4rpx solid #ffffff;
-		border-bottom: 4rpx solid #ffffff;
-		transform: rotate(-45deg) translate(2rpx, -2rpx);
-	}
-
-	.col-name {
-		font-size: 28rpx;
-		color: #4a5568;
-	}
-
-	.col-foot {
-		display: flex;
-		gap: 20rpx;
-		padding: 20rpx 32rpx calc(32rpx + env(safe-area-inset-bottom));
-		border-top: 1rpx solid #f0f2f5;
-	}
-
-	.col-btn {
-		flex: 1;
-		height: 84rpx;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		border-radius: 42rpx;
-		font-size: 30rpx;
-	}
-
-	.col-btn.reset {
-		background: #f0f2f5;
-		color: #4a5568;
-	}
-
-	.col-btn.apply {
-		background: linear-gradient(135deg, #2b6cb0 0%, #14b8a6 100%);
-		color: #ffffff;
 	}
 
 	/* ===== 跟进记录弹窗 ===== */
@@ -1135,32 +671,53 @@
 		left: 0;
 		right: 0;
 		height: 70vh;
-		background: #ffffff;
-		border-radius: 28rpx 28rpx 0 0;
+		background: #f7f9fd;
+		border-radius: 32rpx 32rpx 0 0;
 		padding-bottom: env(safe-area-inset-bottom);
 		display: flex;
 		flex-direction: column;
+	}
+
+	.follow-header {
+		background: #ffffff;
+		border-radius: 32rpx 32rpx 0 0;
+		padding-bottom: 20rpx;
+	}
+
+	.follow-header-bar {
+		width: 64rpx;
+		height: 8rpx;
+		background: #e2e8f0;
+		border-radius: 4rpx;
+		margin: 16rpx auto 0;
 	}
 
 	.follow-head {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 32rpx 32rpx 24rpx;
-		border-bottom: 1rpx solid #f0f2f5;
+		padding: 20rpx 32rpx 0;
 	}
 
 	.follow-title {
-		font-size: 34rpx;
+		font-size: 36rpx;
 		font-weight: 600;
 		color: #1a2233;
 	}
 
+	.follow-close-btn {
+		width: 56rpx;
+		height: 56rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: #f4f6fa;
+		border-radius: 50%;
+	}
+
 	.follow-close {
-		font-size: 30rpx;
-		color: #2b6cb0;
-		min-width: 80rpx;
-		text-align: right;
+		font-size: 28rpx;
+		color: #6b7280;
 	}
 
 	.follow-body {
@@ -1173,7 +730,7 @@
 
 	.form-label {
 		display: block;
-		font-size: 28rpx;
+		font-size: 30rpx;
 		color: #4a5568;
 		margin-bottom: 12rpx;
 	}
@@ -1184,7 +741,7 @@
 		background: #f4f6fa;
 		border-radius: 16rpx;
 		padding: 20rpx;
-		font-size: 30rpx;
+		font-size: 32rpx;
 		color: #1a2233;
 		box-sizing: border-box;
 	}
@@ -1195,7 +752,7 @@
 		background: #f4f6fa;
 		border-radius: 16rpx;
 		padding: 0 20rpx;
-		font-size: 30rpx;
+		font-size: 32rpx;
 		color: #1a2233;
 		box-sizing: border-box;
 	}
@@ -1211,7 +768,7 @@
 		height: 80rpx;
 		line-height: 80rpx;
 		border-radius: 40rpx;
-		font-size: 32rpx;
+		font-size: 34rpx;
 		border: none;
 	}
 
@@ -1231,45 +788,48 @@
 
 	/* ===== 跟进记录弹窗内容 ===== */
 	.follow-history {
-		height: 40vh;
-		padding: 24rpx 32rpx;
-	}
-
-	.follow-panel {
-		height: 75vh;
-		max-height: 75vh;
+		width: 96%;
+		height: calc(70vh - 120rpx);
+		padding: 24rpx 15rpx;
 	}
 
 	.history-item {
+		margin-bottom: 16rpx;
+	}
+
+	.history-card {
+		background: #ffffff;
+		border-radius: 20rpx;
+		padding: 24rpx;
+	}
+
+	.history-time-row {
 		display: flex;
-		margin-bottom: 24rpx;
+		align-items: center;
+		margin-bottom: 12rpx;
 	}
 
 	.history-dot {
-		width: 16rpx;
-		height: 16rpx;
+		width: 12rpx;
+		height: 12rpx;
 		border-radius: 50%;
 		background: #2b6cb0;
-		margin-right: 16rpx;
-		margin-top: 8rpx;
+		margin-right: 12rpx;
 		flex-shrink: 0;
 	}
 
-	.history-body {
-		flex: 1;
-	}
-
 	.history-time {
-		display: block;
 		font-size: 24rpx;
-		color: #a8b0be;
-		margin-bottom: 6rpx;
+		color: #9ca3af;
+		font-weight: 500;
 	}
 
 	.history-text {
 		font-size: 30rpx;
 		color: #1a2233;
-		line-height: 1.5;
+		line-height: 1.6;
+		word-break: break-all;
+		overflow-wrap: break-word;
 	}
 
 	.history-empty {
@@ -1277,44 +837,8 @@
 		text-align: center;
 	}
 
-	.follow-input-bar {
-		display: flex;
-		flex-direction: column;
-		gap: 16rpx;
-		padding: 20rpx 32rpx calc(20rpx + env(safe-area-inset-bottom));
-		border-top: 1rpx solid #f0f2f5;
-	}
-
-	.follow-textarea {
-		width: 100%;
-		min-height: 120rpx;
-		max-height: 240rpx;
-		background: #f4f6fa;
-		border-radius: 20rpx;
-		padding: 16rpx 20rpx;
-		font-size: 30rpx;
-		color: #1a2233;
-		box-sizing: border-box;
-	}
-
-	.send-btn {
-		width: 100%;
-		height: 80rpx;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: linear-gradient(135deg, #2b6cb0 0%, #14b8a6 100%);
-		border-radius: 40rpx;
-	}
-
-	.send-text {
-		font-size: 30rpx;
-		color: #ffffff;
-		font-weight: 500;
-	}
-
-	/* ===== 联系人弹窗 ===== */
-	.contact-mask {
+	/* ===== 公司详情弹窗 ===== */
+	.info-mask {
 		position: fixed;
 		top: 0;
 		left: 0;
@@ -1324,126 +848,99 @@
 		z-index: 30;
 		opacity: 0;
 		visibility: hidden;
-		transition: opacity 0.3s, visibility 0.3s;
+		transition: all 0.25s;
 	}
 
-	.contact-mask.show {
+	.info-mask.show {
 		opacity: 1;
 		visibility: visible;
 	}
 
-	.contact-panel {
+	.info-panel {
 		position: absolute;
 		bottom: 0;
 		left: 0;
 		right: 0;
 		height: 70vh;
-		background: #ffffff;
-		border-radius: 28rpx 28rpx 0 0;
+		background: #f7f9fd;
+		border-radius: 32rpx 32rpx 0 0;
+		padding-bottom: env(safe-area-inset-bottom);
 		display: flex;
 		flex-direction: column;
 	}
 
-	.contact-head {
+	.info-header {
+		background: #ffffff;
+		border-radius: 32rpx 32rpx 0 0;
+		padding-bottom: 20rpx;
+	}
+
+	.info-header-bar {
+		width: 64rpx;
+		height: 8rpx;
+		background: #e2e8f0;
+		border-radius: 4rpx;
+		margin: 16rpx auto 0;
+	}
+
+	.info-head {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		padding: 32rpx 32rpx 24rpx;
-		border-bottom: 1rpx solid #f0f2f5;
+		padding: 20rpx 32rpx 0;
 	}
 
-	.contact-title {
-		font-size: 34rpx;
+	.info-title {
+		font-size: 36rpx;
 		font-weight: 600;
 		color: #1a2233;
 	}
 
-	.contact-close {
-		font-size: 30rpx;
-		color: #2b6cb0;
-		min-width: 80rpx;
-		text-align: right;
-	}
-
-	.contact-list {
-		height: 55vh;
-		padding: 16rpx 32rpx 32rpx;
-	}
-
-	.contact-panel {
-		height: auto;
-		max-height: 70vh;
-	}
-
-	.contact-item {
-		display: flex;
-		padding: 32rpx 0;
-		border-bottom: 1rpx solid #f0f2f5;
-	}
-
-	.contact-avatar {
-		width: 88rpx;
-		height: 88rpx;
-		border-radius: 50%;
-		background: linear-gradient(135deg, #2b6cb0 0%, #14b8a6 100%);
+	.info-close-btn {
+		width: 56rpx;
+		height: 56rpx;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		margin-right: 24rpx;
-		flex-shrink: 0;
+		background: #f4f6fa;
+		border-radius: 50%;
 	}
 
-	.contact-avatar-text {
-		font-size: 40rpx;
-		font-weight: 600;
-		color: #ffffff;
+	.info-close {
+		font-size: 28rpx;
+		color: #6b7280;
 	}
 
-	.contact-body {
-		flex: 1;
+	.info-body {
+		width: 96%;
+		height: calc(70vh - 120rpx);
+		padding: 24rpx 15rpx;
 	}
 
-	.contact-name {
-		display: block;
-		font-size: 34rpx;
-		font-weight: 600;
-		color: #1a2233;
-		margin-bottom: 20rpx;
-	}
-
-	.contact-row {
-		display: flex;
-		align-items: center;
+	.info-card {
+		background: #ffffff;
+		border-radius: 20rpx;
+		padding: 24rpx;
 		margin-bottom: 16rpx;
 	}
 
-	.contact-label {
-		width: 80rpx;
-		font-size: 28rpx;
-		color: #a8b0be;
+	.info-card-item {
+		display: flex;
+		flex-direction: column;
 	}
 
-	.contact-value {
-		flex: 1;
+	.info-label {
+		font-size: 24rpx;
+		color: #9ca3af;
+		margin-bottom: 10rpx;
+		font-weight: 500;
+	}
+
+	.info-value {
 		font-size: 30rpx;
-		color: #4a5568;
-	}
-
-	.contact-value.link {
-		color: #2b6cb0;
-	}
-
-	.copy-btn {
-		display: none;
-	}
-
-	.copy-text {
-		display: none;
-	}
-
-	.contact-empty {
-		padding: 60rpx 0;
-		text-align: center;
+		color: #1a2233;
+		line-height: 1.6;
+		word-break: break-all;
 	}
 
 	/* ===== 筛选弹窗 ===== */
@@ -1487,13 +984,13 @@
 	}
 
 	.filter-title {
-		font-size: 34rpx;
+		font-size: 36rpx;
 		font-weight: 600;
 		color: #1a2233;
 	}
 
 	.filter-close {
-		font-size: 30rpx;
+		font-size: 32rpx;
 		color: #2b6cb0;
 		min-width: 80rpx;
 		text-align: right;
@@ -1523,7 +1020,7 @@
 
 	.form-label {
 		width: 150rpx;
-		font-size: 26rpx;
+		font-size: 28rpx;
 		color: #64748b;
 		font-weight: 500;
 		flex-shrink: 0;
@@ -1537,7 +1034,7 @@
 		border: 1rpx solid #e2e8f0;
 		border-radius: 10rpx;
 		padding: 0 20rpx;
-		font-size: 26rpx;
+		font-size: 28rpx;
 		color: #1e293b;
 		box-sizing: border-box;
 		min-width: 0;
@@ -1555,7 +1052,7 @@
 		border: 1rpx solid #e2e8f0;
 		border-radius: 10rpx;
 		padding: 0 20rpx;
-		font-size: 26rpx;
+		font-size: 28rpx;
 		color: #1e293b;
 		box-sizing: border-box;
 		overflow: hidden;
@@ -1572,7 +1069,7 @@
 	}
 
 	.date-sep {
-		font-size: 24rpx;
+		font-size: 26rpx;
 		color: #94a3b8;
 		flex-shrink: 0;
 	}
@@ -1596,7 +1093,7 @@
 		align-items: center;
 		justify-content: center;
 		border-radius: 40rpx;
-		font-size: 32rpx;
+		font-size: 34rpx;
 	}
 
 	.filter-btn.reset {
@@ -1607,74 +1104,5 @@
 	.filter-btn.apply {
 		background: linear-gradient(135deg, #2b6cb0 0%, #14b8a6 100%);
 		color: #ffffff;
-	}
-
-	/* ===== 操作菜单弹窗 ===== */
-	.action-mask {
-		position: fixed;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		background: rgba(0, 0, 0, 0.4);
-		z-index: 30;
-		opacity: 0;
-		visibility: hidden;
-		transition: opacity 0.3s, visibility 0.3s;
-	}
-
-	.action-mask.show {
-		opacity: 1;
-		visibility: visible;
-	}
-
-	.action-panel {
-		position: absolute;
-		bottom: 0;
-		left: 0;
-		right: 0;
-		background: #ffffff;
-		border-radius: 28rpx 28rpx 0 0;
-		padding-bottom: env(safe-area-inset-bottom);
-	}
-
-	.action-head {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 32rpx 32rpx 24rpx;
-		border-bottom: 1rpx solid #f0f2f5;
-	}
-
-	.action-title {
-		font-size: 34rpx;
-		font-weight: 600;
-		color: #1a2233;
-	}
-
-	.action-close {
-		font-size: 30rpx;
-		color: #2b6cb0;
-		min-width: 80rpx;
-		text-align: right;
-	}
-
-	.action-grid {
-		display: flex;
-		flex-wrap: wrap;
-		padding: 24rpx 32rpx 48rpx;
-	}
-
-	.action-item {
-		width: 33.33%;
-		padding: 24rpx 0;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
-	.action-item-text {
-		font-size: 24rpx;
-		color: #2b6cb0;
 	}
 </style>
