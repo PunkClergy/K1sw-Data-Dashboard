@@ -49,6 +49,9 @@
 		<view class="drawer" :class="{ 'drawer--open': isDrawerOpen }">
 			<!-- 抽屉头部品牌区 -->
 			<view class="drawer__header">
+				<view class="drawer__close" @tap="closeDrawer">
+					<text class="drawer__close-icon">✕</text>
+				</view>
 				<image class="drawer__logo" src="/static/images/logo.png" mode="aspectFit"></image>
 				<text class="drawer__brand">Wiselink K1SW</text>
 				<text class="drawer__slogan">Fleet Digital Key</text>
@@ -62,10 +65,10 @@
 				</view>
 			</scroll-view>
 
-			<!-- 抽屉底部收起按钮 -->
+			<!-- 抽屉底部退出登录按钮 -->
 			<view class="drawer__footer">
-				<view class="drawer__collapse-btn" @tap="closeDrawer">
-					<text class="drawer__collapse-text">收 起</text>
+				<view class="drawer__logout-btn" @tap="handleLogout">
+					<text class="drawer__logout-text">退出登录</text>
 				</view>
 			</view>
 		</view>
@@ -79,9 +82,6 @@
 		getCompanyFunnel
 	} from '@/api'
 	import {
-		http
-	} from '@/utils/request/http'
-	import {
 		isLoggedIn
 	} from '@/utils/auth'
 
@@ -91,7 +91,7 @@
 				statusBarHeight: 20,
 				isDrawerOpen: false,
 				activeMenuId: 2538,
-				activeName: '',
+				activeName: '数据看板',
 				menuList: [],
 				dashboardGroups: []
 			}
@@ -178,7 +178,7 @@
 			// 卡片点击跳转列表页
 			onCardClick(item) {
 				uni.navigateTo({
-					url: `/pages/list/index?type=${item}&name=${item.name} 节点列表`
+					url: `/pages/list/index?type=${item.name}&name=${item.name} 节点列表`
 				})
 			},
 
@@ -450,8 +450,25 @@
 	}
 
 	.drawer__header {
+		position: relative;
 		padding: 80rpx 40rpx 40rpx;
 		background: linear-gradient(135deg, #2b6cb0 0%, #14b8a6 100%);
+	}
+
+	.drawer__close {
+		position: absolute;
+		top: 80rpx;
+		right: 32rpx;
+		width: 56rpx;
+		height: 56rpx;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.drawer__close-icon {
+		font-size: 32rpx;
+		color: rgba(255, 255, 255, 0.9);
 	}
 
 	.drawer__logo {
@@ -501,22 +518,22 @@
 	}
 
 	.drawer__footer {
-		padding: 24rpx 40rpx calc(40rpx + env(safe-area-inset-bottom));
+		padding: 24rpx 40rpx calc(20rpx + env(safe-area-inset-bottom));
 		border-top: 1rpx solid #eef1f6;
 	}
 
-	.drawer__collapse-btn {
+	.drawer__logout-btn {
 		height: 80rpx;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: #f4f6fa;
+		background: #fff5f5;
 		border-radius: 40rpx;
 	}
 
-	.drawer__collapse-text {
+	.drawer__logout-text {
 		font-size: 28rpx;
-		color: #4a5568;
-		letter-spacing: 2rpx;
+		color: #e53e3e;
+		letter-spacing: 1rpx;
 	}
 </style>
