@@ -25,4 +25,4 @@ export const getCompanyInfo = (params) => http.get('/contaceApi/companyInfo', pa
 export const reviewContact = (data) => http.post('/contaceApi/reviewContact', data)
 
 // 获取销售员列表
-export const getSellerList = () => http.get('/contaceApi/sellerList')
+export const getSellerList = () => http.get('/contaceApi/personList')
