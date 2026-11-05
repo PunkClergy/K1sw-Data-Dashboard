@@ -22,7 +22,7 @@ export const getCompanyInfo = (params) => http.get('/contaceApi/companyInfo', pa
 
 // 提交点评
 // data: { reviewContent, orderid, type }
-export const reviewContact = (data) => http.post('/contaceApi/reviewContact', data)
+export const reviewContact = (data) => http.postFormData('/contaceApi/reviewContact', data)
 
 // 获取销售员列表
 export const getSellerList = () => http.get('/contaceApi/personList')
