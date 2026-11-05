@@ -1,4 +1,6 @@
 <template>
+	<!-- 弹窗打开时锁定原生页面滚动，不脱离文档流，避免关闭后回到顶部 -->
+	<page-meta :page-style="(showFilter || showFollowUp || showCompanyInfo || showAction) ? 'overflow: hidden;' : ''" />
 	<view class="page" :class="{ 'page-locked': showFilter || showFollowUp || showCompanyInfo || showAction }">
 		<!-- 自定义导航栏 -->
 		<view class="nav-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
@@ -22,7 +24,7 @@
 				</view>
 			</view>
 			<view class="toolbar-right">
-				<text class="result-count">共 {{ listData.length }} 条</text>
+				<text class="result-count">共 {{ total }} 条</text>
 			</view>
 		</view>
 
@@ -196,6 +198,16 @@
 					</view>
 				</view>
 				<view class="action-body">
+					<!-- 历史点评记录（点评人 / 时间 / 内容） -->
+					<view class="review-card"
+						v-if="lastReview.reviewcontent || lastReview.reviewdate || lastReview.reviewman">
+						<view class="review-head">
+							<text class="review-man">{{ lastReview.reviewman || '未知点评人' }}</text>
+							<text class="review-date">{{ lastReview.reviewdate }}</text>
+						</view>
+						<text class="review-text">{{ lastReview.reviewcontent }}</text>
+					</view>
+
 					<textarea class="action-textarea" v-model="actionContent" placeholder="请输入点评内容,如未输入则默认提交【已阅】" />
 					<view class="action-foot">
 						<view class="action-btn confirm" @tap="submitAction">
@@ -225,7 +237,7 @@
 				step: '',
 				showFilter: false,
 				showFollowUp: false,
-				salesList: ['刘天贵', '于雅泽', '宋金亮', '段振钢'],
+				salesList: ['宋金亮'],
 				filterForm: {
 					companyName: '',
 					salerName: '',
@@ -240,8 +252,14 @@
 				showAction: false,
 				actionContent: '',
 				currentActionItem: null,
+				lastReview: {
+					reviewcontent: '',
+					reviewdate: '',
+					reviewman: ''
+				},
 				page: 1,
 				pageSize: 20,
+				total: 0,
 				hasMore: true,
 				loading: false
 			}
@@ -282,13 +300,14 @@
 					console.error('销售员列表加载失败:', err)
 				}
 			},
-			async loadData(isLoadMore = false) {
+			async loadData(isLoadMore = false, silent = false) {
 				if (this.loading) return
 				this.loading = true
 
 				if (!isLoadMore) {
 					this.page = 1
 					this.hasMore = true
+					this.total = 0
 				}
 
 				try {
@@ -300,15 +319,25 @@
 						endDate: this.filterForm.endDate,
 						step: this.step,
 						salerName: this.filterForm.salerName
-					}, { loading: !isLoadMore })
-					if (res.code === 1000 && res.content) {
+					}, {
+						loading: !isLoadMore && !silent
+					})
+					if (res.code === 1000) {
+						const rows = Array.isArray(res.content) ? res.content : []
 						if (isLoadMore) {
-							this.listData = [...this.listData, ...res.content]
+							this.listData = [...this.listData, ...rows]
 						} else {
-							this.listData = res.content
+							this.listData = rows
 						}
-						if (res.content.length < this.pageSize) {
-							this.hasMore = false
+						// 总数只在首屏/筛选时写入，翻页加载更多不重复覆盖
+						if (!isLoadMore) {
+							this.total = Number(res.count) || 0
+						}
+						// 分页结束判定：优先用总数；后端未返回总数时回退单页长度判断
+						if (this.total > 0) {
+							this.hasMore = this.listData.length < this.total
+						} else {
+							this.hasMore = rows.length >= this.pageSize
 						}
 					}
 				} catch (err) {
@@ -394,9 +423,13 @@
 				}
 			},
 			openAction(item) {
-				console.log(item)
 				this.currentActionItem = item
 				this.actionContent = ''
+				this.lastReview = {
+					reviewcontent: item.reviewcontent || '',
+					reviewdate: item.reviewdate || '',
+					reviewman: item.reviewman || ''
+				}
 				this.showAction = true
 			},
 			async submitAction() {
@@ -417,6 +450,8 @@
 									icon: 'success'
 								})
 								this.showAction = false
+								// 提交成功后静默重新请求主列表，刷新最新状态（不显示加载遮罩）
+								this.loadData(false, true)
 							} catch (err) {
 								console.error('点评提交失败:', err)
 								uni.showToast({
@@ -440,8 +475,6 @@
 
 	.page-locked {
 		overflow: hidden;
-		position: fixed;
-		width: 100%;
 	}
 
 	/* ===== 导航栏 ===== */
@@ -1025,6 +1058,40 @@
 	.action-close {
 		font-size: 28rpx;
 		color: #6b7280;
+	}
+
+	.review-card {
+		background: #ffffff;
+		border: 1rpx solid #e2e8f0;
+		border-radius: 20rpx;
+		padding: 24rpx;
+		margin-bottom: 20rpx;
+	}
+
+	.review-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 12rpx;
+	}
+
+	.review-man {
+		font-size: 28rpx;
+		color: #2b6cb0;
+		font-weight: 600;
+	}
+
+	.review-date {
+		font-size: 24rpx;
+		color: #9ca3af;
+	}
+
+	.review-text {
+		font-size: 30rpx;
+		color: #1a2233;
+		line-height: 1.6;
+		word-break: break-all;
+		overflow-wrap: break-word;
 	}
 
 	.action-body {
