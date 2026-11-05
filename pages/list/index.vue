@@ -288,7 +288,7 @@
 
 			this.nodeType = options.type || ''
 			this.pageTitle = options.name || '节点列表'
-			this.step = options.name || ''
+			this.step = options.type || ''
 			this.loadData()
 			this.loadSellerList()
 		},
