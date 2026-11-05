@@ -85,6 +85,14 @@
 							<input class="form-input" v-model="filterForm.companyName" placeholder="请输入" />
 						</view>
 						<view class="form-row">
+							<text class="form-label">点评状态</text>
+							<view class="chip-group">
+								<view class="chip" :class="{ active: filterForm.isReview === '' }" @tap="onReviewedChange('')">全部</view>
+								<view class="chip" :class="{ active: filterForm.isReview === 0 }" @tap="onReviewedChange(0)">未点评</view>
+								<view class="chip" :class="{ active: filterForm.isReview === 1 }" @tap="onReviewedChange(1)">已点评</view>
+							</view>
+						</view>
+						<view class="form-row">
 							<text class="form-label">销售员</text>
 							<picker class="form-picker" :range="salesList" @change="onSalesChange">
 								<view class="form-picker-value">{{ filterForm.salerName || '请选择' }}</view>
@@ -136,7 +144,7 @@
 					<view class="info-card">
 						<view class="info-card-item">
 							<text class="info-label">公司名称</text>
-							<text class="info-value">{{ companyInfo.name || '-' }}</text>
+						<text class="info-value copyable" @tap="copyText(companyInfo.name)">{{ companyInfo.name || '-' }}</text>
 						</view>
 					</view>
 					<view class="info-card">
@@ -242,7 +250,8 @@
 					companyName: '',
 					salerName: '',
 					startDate: '',
-					endDate: ''
+					endDate: '',
+					isReview: 0
 				},
 				currentItem: null,
 				followHistory: [],
@@ -318,7 +327,8 @@
 						startDate: this.filterForm.startDate,
 						endDate: this.filterForm.endDate,
 						step: this.step,
-						salerName: this.filterForm.salerName
+						salerName: this.filterForm.salerName,
+						isReview: this.filterForm.isReview
 					}, {
 						loading: !isLoadMore && !silent
 					})
@@ -355,11 +365,15 @@
 					companyName: '',
 					salerName: '',
 					startDate: '',
-					endDate: ''
+					endDate: '',
+					isReview: 0
 				}
 			},
 			onSalesChange(e) {
 				this.filterForm.salerName = this.salesList[e.detail.value]
+			},
+			onReviewedChange(val) {
+				this.filterForm.isReview = val
 			},
 			onStartDateChange(e) {
 				this.filterForm.startDate = e.detail.value
@@ -368,6 +382,10 @@
 				this.filterForm.endDate = e.detail.value
 			},
 			copyText(text) {
+				if (!text || text === '-') {
+					uni.showToast({ title: '暂无可复制内容', icon: 'none' })
+					return
+				}
 				uni.setClipboardData({
 					data: text,
 					success: () => {
@@ -1254,6 +1272,11 @@
 		word-break: break-all;
 	}
 
+	.copyable {
+		color: #2b6cb0;
+		cursor: pointer;
+	}
+
 	/* ===== 筛选弹窗 ===== */
 	.filter-mask {
 		position: fixed;
@@ -1383,6 +1406,33 @@
 		font-size: 26rpx;
 		color: #94a3b8;
 		flex-shrink: 0;
+	}
+
+	.chip-group {
+		flex: 1;
+		display: flex;
+		gap: 16rpx;
+		min-width: 0;
+	}
+
+	.chip {
+		flex: 1;
+		height: 64rpx;
+		line-height: 64rpx;
+		text-align: center;
+		font-size: 26rpx;
+		color: #64748b;
+		background: #f8fafc;
+		border: 1rpx solid #e2e8f0;
+		border-radius: 10rpx;
+		box-sizing: border-box;
+	}
+
+	.chip.active {
+		color: #ffffff;
+		background: linear-gradient(135deg, #2b6cb0 0%, #14b8a6 100%);
+		border-color: transparent;
+		font-weight: 500;
 	}
 
 	.date {
