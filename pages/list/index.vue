@@ -182,6 +182,7 @@
 							<view class="history-time-row">
 								<view class="history-dot"></view>
 								<text class="history-time">{{ h.createdate }}</text>
+								<text class="history-man">{{ h.replyman }}</text>
 							</view>
 							<text class="history-text">{{ h.replycontent }}</text>
 						</view>
@@ -318,6 +319,7 @@
 					this.hasMore = true
 					this.total = 0
 				}
+				console.log(this.step,'step')
 
 				try {
 					const res = await getContactList({
@@ -990,6 +992,13 @@
 	.history-time {
 		font-size: 24rpx;
 		color: #9ca3af;
+		font-weight: 500;
+	}
+
+	.history-man {
+		margin-left: auto;
+		font-size: 24rpx;
+		color: #2b6cb0;
 		font-weight: 500;
 	}
 
