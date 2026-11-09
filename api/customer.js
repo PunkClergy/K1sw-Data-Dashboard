@@ -24,5 +24,10 @@ export const getCompanyInfo = (params) => http.get('/contaceApi/companyInfo', pa
 // data: { reviewContent, orderid, type }
 export const reviewContact = (data) => http.postFormData('/contaceApi/reviewContact', data)
 
+// 标记客户已读（点击列表卡片后红点消失）
+// data: { id }
+// 注意：后端接口名待确认，当前按占位路径 /contaceApi/xxx 提交，确认后只改这一行
+export const readContact = (data) => http.postFormData('/contaceApi/xxx', data, { loading: false })
+
 // 获取销售员列表
 export const getSellerList = () => http.get('/contaceApi/personList')

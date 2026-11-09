@@ -30,14 +30,15 @@
 
 		<!-- 列表内容 -->
 		<view class="list" :style="{ paddingTop: (statusBarHeight + 100) + 'px' }">
-			<view class="list-card" v-for="item in listData" :key="item.id">
+			<view class="list-card" v-for="item in listData" :key="item.id" @tap="markCardRead(item)">
 				<!-- 卡片头部：公司名称 -->
 				<view class="card-head">
 					<view class="head-left">
+						<view class="blink-dot" v-if="!item.redStates"></view>
 						<text class="company-name">{{ item.createdate }}</text>
 					</view>
 					<view class="head-right">
-						<text class="more-btn" @tap="openCompanyInfo(item)">更多</text>
+						<text class="more-btn" @tap.stop="openCompanyInfo(item)">更多</text>
 					</view>
 				</view>
 
@@ -49,7 +50,8 @@
 					</view>
 					<view class="meta-row">
 						<text class="meta-label">公司名称</text>
-						<text class="meta-value copyable" @tap="copyText(item.companyName)">{{ item.companyName || '-' }}</text>
+						<text class="meta-value copyable"
+							@tap.stop="copyText(item.companyName, item)">{{ item.companyName || '-' }}</text>
 					</view>
 					<view class="field-item full-width">
 						<text class="field-label">沟通内容</text>
@@ -60,12 +62,12 @@
 				<view class="card-footer">
 					<view class="footer-bar">
 						<text class="expand-link" v-if="item.replycontent && item.replycontent.length > 500"
-							@tap="item.textExpanded = !item.textExpanded">
+							@tap.stop="toggleExpand(item)">
 							{{ item.textExpanded ? '收起' : '显示详情' }}
 						</text>
 						<view class="footer-actions">
-							<text class="action-link" @tap="openFollowUp(item)">跟进记录</text>
-							<view class="mini-btn" @tap="openAction(item)">
+							<text class="action-link" @tap.stop="openFollowUp(item)">跟进记录</text>
+							<view class="mini-btn" @tap.stop="openAction(item)">
 								<text class="mini-text">操作</text>
 							</view>
 						</view>
@@ -234,7 +236,8 @@
 		getMoreContactList,
 		getCompanyInfo,
 		reviewContact,
-		getSellerList
+		getSellerList,
+		readContact
 	} from '@/api'
 	export default {
 		data() {
@@ -382,7 +385,9 @@
 			onEndDateChange(e) {
 				this.filterForm.endDate = e.detail.value
 			},
-			copyText(text) {
+			// 复制文本；传入 item 时顺带标记该卡片已读
+			copyText(text, item) {
+				if (item) this.markCardRead(item)
 				if (!text || text === '-') {
 					uni.showToast({ title: '暂无可复制内容', icon: 'none' })
 					return
@@ -401,7 +406,39 @@
 				this.showFilter = false
 				this.loadData()
 			},
+			// 标记客户已读：卡片任意区域（含打开弹窗）触发，成功后清除红点
+			// 已读或同一卡片请求进行中则跳过，避免重复请求
+			async markCardRead(item) {
+				if (!item || item.redStates === true || item._readPending) return
+				item._readPending = true
+				try {
+					const res = await readContact({
+						id: item.id
+					})
+					if (res.code === 1000) {
+						item.redStates = true
+					} else {
+						uni.showToast({
+							title: res.msg || '接口请求失败',
+							icon: 'none'
+						})
+					}
+				} catch (err) {
+					uni.showToast({
+						title: err.msg || '接口请求失败',
+						icon: 'none'
+					})
+				} finally {
+					item._readPending = false
+				}
+			},
+			// 显示详情 / 收起：先标记已读再切换
+			toggleExpand(item) {
+				this.markCardRead(item)
+				item.textExpanded = !item.textExpanded
+			},
 			async openFollowUp(item) {
+				this.markCardRead(item)
 				this.currentItem = item
 				this.followHistory = []
 				this.showFollowUp = true
@@ -425,6 +462,7 @@
 				uni.navigateBack()
 			},
 			async openCompanyInfo(item) {
+				this.markCardRead(item)
 				this.showCompanyInfo = true
 				try {
 					const res = await getCompanyInfo({
@@ -443,6 +481,7 @@
 				}
 			},
 			openAction(item) {
+				this.markCardRead(item)
 				this.currentActionItem = item
 				this.actionContent = ''
 				this.lastReview = {
@@ -643,6 +682,15 @@
 		display: flex;
 		align-items: center;
 		gap: 16rpx;
+	}
+
+	/* 未读红点：redStates 为 false 时显示（静态，不闪烁） */
+	.blink-dot {
+		width: 14rpx;
+		height: 14rpx;
+		border-radius: 50%;
+		background: #f43f5e;
+		flex-shrink: 0;
 	}
 
 	.company-name {
