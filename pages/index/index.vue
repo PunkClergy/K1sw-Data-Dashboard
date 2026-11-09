@@ -30,9 +30,11 @@
 					<view class="dashboard__card" v-for="(item, idx) in group.value" :key="item.name"
 						@tap="onCardClick(item)">
 						<view class="dashboard__card-top" :style="{ background: getCardColor(idx) }"></view>
-						<!-- 未读数量徽标：取后端 num 字段 -->
-						<view class="dashboard__card-badge" v-if="item.num > 0">
-							<text class="dashboard__card-badge-text">{{ item.num > 99 ? '99+' : item.num }}</text>
+						<!-- 卡片第一行：未读徽标单独成行，靠右 -->
+						<view class="dashboard__card-flag">
+							<view class="dashboard__card-badge" v-if="item.value > 0">
+								<text class="dashboard__card-badge-text">{{ item.value }}</text>
+							</view>
 						</view>
 						<view class="dashboard__card-head">
 							<view class="dashboard__card-dot" :style="{ background: getCardColor(idx) }"></view>
@@ -372,21 +374,26 @@
 		opacity: 0.8;
 	}
 
-	/* 卡片右上角未读数量徽标 */
+	/* 卡片第一行：未读徽标独占一行，靠右对齐 */
+	.dashboard__card-flag {
+		display: flex;
+		justify-content: flex-end;
+		min-height: 30rpx;
+		margin-bottom: 10rpx;
+	}
+
+	/* 未读数量徽标：胶囊样式 */
 	.dashboard__card-badge {
-		position: absolute;
-		top: 12rpx;
-		right: 12rpx;
-		min-width: 34rpx;
-		height: 34rpx;
-		padding: 0 10rpx;
+		flex-shrink: 0;
+		min-width: 30rpx;
+		height: 30rpx;
+		padding: 0 8rpx;
 		box-sizing: border-box;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		background: #f43f5e;
-		border-radius: 17rpx;
-		box-shadow: 0 4rpx 10rpx rgba(244, 63, 94, 0.3);
+		border-radius: 15rpx;
 	}
 
 	.dashboard__card-badge-text {
@@ -410,10 +417,15 @@
 	}
 
 	.dashboard__card-label {
+		flex: 1;
+		min-width: 0;
 		font-size: 22rpx;
 		color: #8a93a6;
 		font-weight: 500;
 		letter-spacing: 0.5rpx;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
 	}
 
 	.dashboard__card-num {
