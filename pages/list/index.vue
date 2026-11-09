@@ -30,15 +30,14 @@
 
 		<!-- 列表内容 -->
 		<view class="list" :style="{ paddingTop: (statusBarHeight + 100) + 'px' }">
-			<view class="list-card" v-for="item in listData" :key="item.id" @tap="markCardRead(item)">
+			<view class="list-card" v-for="item in listData" :key="item.id" :class="{ 'is-read': item.redStates === true }">
 				<!-- 卡片头部：公司名称 -->
 				<view class="card-head">
 					<view class="head-left">
-						<view class="blink-dot" v-if="!item.redStates"></view>
 						<text class="company-name">{{ item.createdate }}</text>
 					</view>
 					<view class="head-right">
-						<text class="more-btn" @tap.stop="openCompanyInfo(item)">更多</text>
+						<text class="more-btn" @tap="openCompanyInfo(item)">更多</text>
 					</view>
 				</view>
 
@@ -51,7 +50,7 @@
 					<view class="meta-row">
 						<text class="meta-label">公司名称</text>
 						<text class="meta-value copyable"
-							@tap.stop="copyText(item.companyName, item)">{{ item.companyName || '-' }}</text>
+							@tap="copyText(item.companyName)">{{ item.companyName || '-' }}</text>
 					</view>
 					<view class="field-item full-width">
 						<text class="field-label">沟通内容</text>
@@ -62,12 +61,15 @@
 				<view class="card-footer">
 					<view class="footer-bar">
 						<text class="expand-link" v-if="item.replycontent && item.replycontent.length > 500"
-							@tap.stop="toggleExpand(item)">
+							@tap="item.textExpanded = !item.textExpanded">
 							{{ item.textExpanded ? '收起' : '显示详情' }}
 						</text>
+						<view class="mini-btn read-btn" @tap.stop="markCardRead(item)">
+							<text class="mini-text">已读</text>
+						</view>
 						<view class="footer-actions">
-							<text class="action-link" @tap.stop="openFollowUp(item)">跟进记录</text>
-							<view class="mini-btn" @tap.stop="openAction(item)">
+							<text class="action-link" @tap="openFollowUp(item)">跟进记录</text>
+							<view class="mini-btn" @tap="openAction(item)">
 								<text class="mini-text">操作</text>
 							</view>
 						</view>
@@ -312,6 +314,13 @@
 					console.error('销售员列表加载失败:', err)
 				}
 			},
+			// 已读态归一：后端 isread 为 true 的行，初始化即按已读渲染（兼容 true / "true" / 1 / "1"）
+			normalizeReadState(rows) {
+				return rows.map(row => ({
+					...row,
+					redStates: row.isread === true || row.isread === 'true' || row.isread === 1 || row.isread === '1'
+				}))
+			},
 			async loadData(isLoadMore = false, silent = false) {
 				if (this.loading) return
 				this.loading = true
@@ -337,7 +346,7 @@
 						loading: !isLoadMore && !silent
 					})
 					if (res.code === 1000) {
-						const rows = Array.isArray(res.content) ? res.content : []
+						const rows = this.normalizeReadState(Array.isArray(res.content) ? res.content : [])
 						if (isLoadMore) {
 							this.listData = [...this.listData, ...rows]
 						} else {
@@ -385,9 +394,8 @@
 			onEndDateChange(e) {
 				this.filterForm.endDate = e.detail.value
 			},
-			// 复制文本；传入 item 时顺带标记该卡片已读
-			copyText(text, item) {
-				if (item) this.markCardRead(item)
+			// 复制文本
+			copyText(text) {
 				if (!text || text === '-') {
 					uni.showToast({ title: '暂无可复制内容', icon: 'none' })
 					return
@@ -406,7 +414,7 @@
 				this.showFilter = false
 				this.loadData()
 			},
-			// 标记客户已读：卡片任意区域（含打开弹窗）触发，成功后清除红点
+			// 标记客户已读：仅「已读」按钮触发
 			// 已读或同一卡片请求进行中则跳过，避免重复请求
 			async markCardRead(item) {
 				if (!item || item.redStates === true || item._readPending) return
@@ -417,6 +425,10 @@
 					})
 					if (res.code === 1000) {
 						item.redStates = true
+						uni.showToast({
+							title: '已标记已读',
+							icon: 'none'
+						})
 					} else {
 						uni.showToast({
 							title: res.msg || '接口请求失败',
@@ -432,13 +444,7 @@
 					item._readPending = false
 				}
 			},
-			// 显示详情 / 收起：先标记已读再切换
-			toggleExpand(item) {
-				this.markCardRead(item)
-				item.textExpanded = !item.textExpanded
-			},
 			async openFollowUp(item) {
-				this.markCardRead(item)
 				this.currentItem = item
 				this.followHistory = []
 				this.showFollowUp = true
@@ -462,7 +468,6 @@
 				uni.navigateBack()
 			},
 			async openCompanyInfo(item) {
-				this.markCardRead(item)
 				this.showCompanyInfo = true
 				try {
 					const res = await getCompanyInfo({
@@ -481,7 +486,6 @@
 				}
 			},
 			openAction(item) {
-				this.markCardRead(item)
 				this.currentActionItem = item
 				this.actionContent = ''
 				this.lastReview = {
@@ -667,6 +671,13 @@
 		padding: 24rpx;
 		margin-bottom: 20rpx;
 		box-shadow: 0 4rpx 16rpx rgba(31, 45, 74, 0.05);
+		transition: background 0.2s, box-shadow 0.2s;
+	}
+
+	/* 已读态卡片底色：接口成功后由 redStates 驱动 */
+	.list-card.is-read {
+		background: #f1f4f9;
+		box-shadow: 0 2rpx 8rpx rgba(31, 45, 74, 0.04);
 	}
 
 	.card-head {
@@ -682,15 +693,6 @@
 		display: flex;
 		align-items: center;
 		gap: 16rpx;
-	}
-
-	/* 未读红点：redStates 为 false 时显示（静态，不闪烁） */
-	.blink-dot {
-		width: 14rpx;
-		height: 14rpx;
-		border-radius: 50%;
-		background: #f43f5e;
-		flex-shrink: 0;
 	}
 
 	.company-name {
@@ -750,6 +752,14 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
+	}
+
+	/* 底部栏的「已读」小按钮：紧跟在「显示详情/收起」右侧 */
+	.read-btn {
+		padding: 8rpx 22rpx;
+		min-width: 0;
+		margin-left: 0;
+		border-radius: 10rpx;
 	}
 
 	.mini-text {
@@ -857,7 +867,7 @@
 	.footer-bar {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
+		gap: 16rpx;
 	}
 
 	.footer-actions {
