@@ -60,7 +60,7 @@
 				</view>
 				<view class="card-footer">
 					<view class="footer-bar">
-						<text class="expand-link" v-if="item.replycontent && item.replycontent.length > 500"
+						<text class="expand-link" v-if="item.replycontent && item.replycontent.length > 300"
 							@tap="item.textExpanded = !item.textExpanded">
 							{{ item.textExpanded ? '收起' : '显示详情' }}
 						</text>
@@ -674,10 +674,11 @@
 		transition: background 0.2s, box-shadow 0.2s;
 	}
 
-	/* 已读态卡片底色：接口成功后由 redStates 驱动 */
+	/* 已读态卡片底色：比页面浅蓝背景明显更沉一档，避免和背景糊在一起 */
 	.list-card.is-read {
-		background: #f1f4f9;
-		box-shadow: 0 2rpx 8rpx rgba(31, 45, 74, 0.04);
+		background: #e3e8f1;
+		border: 1rpx solid #d7dee9;
+		box-shadow: none;
 	}
 
 	.card-head {

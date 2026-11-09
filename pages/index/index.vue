@@ -30,6 +30,10 @@
 					<view class="dashboard__card" v-for="(item, idx) in group.value" :key="item.name"
 						@tap="onCardClick(item)">
 						<view class="dashboard__card-top" :style="{ background: getCardColor(idx) }"></view>
+						<!-- 未读数量徽标：取后端 num 字段 -->
+						<view class="dashboard__card-badge" v-if="item.num > 0">
+							<text class="dashboard__card-badge-text">{{ item.num > 99 ? '99+' : item.num }}</text>
+						</view>
 						<view class="dashboard__card-head">
 							<view class="dashboard__card-dot" :style="{ background: getCardColor(idx) }"></view>
 							<text class="dashboard__card-label">{{ item.name }}</text>
@@ -366,6 +370,30 @@
 		right: 0;
 		height: 4rpx;
 		opacity: 0.8;
+	}
+
+	/* 卡片右上角未读数量徽标 */
+	.dashboard__card-badge {
+		position: absolute;
+		top: 12rpx;
+		right: 12rpx;
+		min-width: 34rpx;
+		height: 34rpx;
+		padding: 0 10rpx;
+		box-sizing: border-box;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: #f43f5e;
+		border-radius: 17rpx;
+		box-shadow: 0 4rpx 10rpx rgba(244, 63, 94, 0.3);
+	}
+
+	.dashboard__card-badge-text {
+		font-size: 20rpx;
+		font-weight: 600;
+		color: #ffffff;
+		line-height: 1;
 	}
 
 	.dashboard__card-head {
