@@ -87,7 +87,7 @@
 		</view>
 
 		<!-- 筛选弹窗 -->
-		<view class="filter-mask" :class="{ show: showFilter }" @tap="showFilter = false" @touchmove.stop.prevent>
+		<view class="filter-mask show" v-if="showFilter" @tap="showFilter = false" @touchmove.stop.prevent>
 			<view class="filter-panel" @tap.stop>
 				<view class="filter-head">
 					<text class="filter-title">筛选</text>
@@ -137,7 +137,7 @@
 		</view>
 
 		<!-- 公司详情弹窗 -->
-		<view class="info-mask" :class="{ show: showCompanyInfo }" @tap="showCompanyInfo = false"
+		<view class="info-mask show" v-if="showCompanyInfo" @tap="showCompanyInfo = false"
 			@touchmove.stop.prevent>
 			<view class="info-panel" @tap.stop>
 				<view class="info-header">
@@ -167,7 +167,7 @@
 		</view>
 
 		<!-- 跟进记录弹窗 -->
-		<view class="follow-mask" :class="{ show: showFollowUp }" @tap="showFollowUp = false" @touchmove.stop.prevent>
+		<view class="follow-mask show" v-if="showFollowUp" @tap="showFollowUp = false" @touchmove.stop.prevent>
 			<view class="follow-panel" @tap.stop>
 				<view class="follow-header">
 					<view class="follow-header-bar"></view>
@@ -198,7 +198,7 @@
 		</view>
 
 		<!-- 操作弹窗 -->
-		<view class="action-mask" :class="{ show: showAction }" @tap="showAction = false" @touchmove.stop.prevent>
+		<view class="action-mask show" v-if="showAction" @tap="showAction = false" @touchmove.stop.prevent>
 			<view class="action-panel" @tap.stop>
 				<view class="action-header">
 					<view class="action-header-bar"></view>
@@ -220,7 +220,11 @@
 						<text class="review-text">{{ lastReview.reviewcontent }}</text>
 					</view>
 
-					<textarea class="action-textarea" v-model="actionContent" placeholder="请输入点评内容,如未输入则默认提交【已阅】" />
+					<view class="action-input-wrap">
+						<textarea class="action-textarea" v-model="actionContent" />
+						<!-- 自定义占位文案：不用原生 placeholder，避免 iOS 上原生占位文字脱离弹窗、飘到列表上 -->
+						<text class="action-placeholder" v-if="!actionContent">请输入点评内容，如未输入则默认提交【已阅】</text>
+					</view>
 					<view class="action-foot">
 						<view class="action-btn confirm" @tap="submitAction">
 							<text class="action-btn-text">提交</text>
@@ -940,6 +944,7 @@
 
 	.follow-mask.show {
 		opacity: 1;
+		animation: popup-fade-in 0.22s ease-out;
 		visibility: visible;
 	}
 
@@ -1130,7 +1135,7 @@
 		right: 0;
 		bottom: 0;
 		background: rgba(0, 0, 0, 0.4);
-		z-index: 30;
+		z-index: 90;
 		opacity: 0;
 		visibility: hidden;
 		transition: all 0.25s;
@@ -1138,6 +1143,7 @@
 
 	.action-mask.show {
 		opacity: 1;
+		animation: popup-fade-in 0.22s ease-out;
 		visibility: visible;
 	}
 
@@ -1150,6 +1156,10 @@
 		background: #f7f9fd;
 		border-radius: 32rpx 32rpx 0 0;
 		padding-bottom: env(safe-area-inset-bottom);
+		/* iOS 上把弹窗内容裁剪在自己的圆角盒子里，防止内部输入框的文字飘到下层列表 */
+		overflow: hidden;
+		z-index: 1;
+		transform: translateZ(0);
 	}
 
 	.action-header {
@@ -1232,6 +1242,12 @@
 		padding: 24rpx;
 	}
 
+	/* 输入框容器：占位文案绝对定位在输入框内部，不依赖原生 placeholder */
+	.action-input-wrap {
+		position: relative;
+		z-index: 1;
+	}
+
 	.action-textarea {
 		width: 100%;
 		height: 32vh;
@@ -1242,6 +1258,21 @@
 		font-size: 30rpx;
 		color: #1a2233;
 		box-sizing: border-box;
+		position: relative;
+		z-index: 1;
+	}
+
+	.action-placeholder {
+		position: absolute;
+		left: 24rpx;
+		top: 24rpx;
+		right: 24rpx;
+		font-size: 30rpx;
+		line-height: 1.5;
+		color: #a8b0be;
+		/* 占位文案只做展示，不拦截点击，保证能点到底下的输入框 */
+		pointer-events: none;
+		z-index: 2;
 	}
 
 	.action-foot {
@@ -1298,6 +1329,7 @@
 
 	.info-mask.show {
 		opacity: 1;
+		animation: popup-fade-in 0.22s ease-out;
 		visibility: visible;
 	}
 
@@ -1409,6 +1441,7 @@
 
 	.filter-mask.show {
 		opacity: 1;
+		animation: popup-fade-in 0.22s ease-out;
 		visibility: visible;
 	}
 
@@ -1581,5 +1614,13 @@
 	.filter-btn.apply {
 		background: linear-gradient(135deg, #2b6cb0 0%, #14b8a6 100%);
 		color: #ffffff;
+	}
+	@keyframes popup-fade-in {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
 	}
 </style>
