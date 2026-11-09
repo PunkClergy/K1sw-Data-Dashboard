@@ -41,22 +41,33 @@
 					</view>
 				</view>
 
-				<!-- 卡片字段：默认重要字段 -->
+				<!-- 卡片字段：客户基础信息 + 沟通内容 -->
 				<view class="field-grid">
+					<view class="meta-row">
+						<text class="meta-label">绑定销售员</text>
+						<text class="meta-value">{{ item.replyman || '-' }}</text>
+					</view>
+					<view class="meta-row">
+						<text class="meta-label">公司名称</text>
+						<text class="meta-value copyable" @tap="copyText(item.companyName)">{{ item.companyName || '-' }}</text>
+					</view>
 					<view class="field-item full-width">
+						<text class="field-label">沟通内容</text>
 						<text class="field-value"
 							:class="{ 'text-clamp': !item.textExpanded }">{{ item.replycontent || '' }}</text>
 					</view>
 				</view>
 				<view class="card-footer">
-					<text class="expand-link" v-if="item.replycontent && item.replycontent.length > 500"
-						@tap="item.textExpanded = !item.textExpanded">
-						{{ item.textExpanded ? '收起' : '显示详情' }}
-					</text>
-					<view class="footer-actions">
-						<text class="action-link" @tap="openFollowUp(item)">跟进记录</text>
-						<view class="mini-btn" @tap="openAction(item)">
-							<text class="mini-text">操作</text>
+					<view class="footer-bar">
+						<text class="expand-link" v-if="item.replycontent && item.replycontent.length > 500"
+							@tap="item.textExpanded = !item.textExpanded">
+							{{ item.textExpanded ? '收起' : '显示详情' }}
+						</text>
+						<view class="footer-actions">
+							<text class="action-link" @tap="openFollowUp(item)">跟进记录</text>
+							<view class="mini-btn" @tap="openAction(item)">
+								<text class="mini-text">操作</text>
+							</view>
 						</view>
 					</view>
 				</view>
@@ -135,18 +146,6 @@
 					</view>
 				</view>
 				<scroll-view scroll-y class="info-body" v-if="companyInfo">
-					<view class="info-card">
-						<view class="info-card-item">
-							<text class="info-label">绑定销售员</text>
-							<text class="info-value">{{ companyInfo.salespersonName || '-' }}</text>
-						</view>
-					</view>
-					<view class="info-card">
-						<view class="info-card-item">
-							<text class="info-label">公司名称</text>
-						<text class="info-value copyable" @tap="copyText(companyInfo.name)">{{ companyInfo.name || '-' }}</text>
-						</view>
-					</view>
 					<view class="info-card">
 						<view class="info-card-item">
 							<text class="info-label">公司介绍</text>
@@ -404,6 +403,7 @@
 			},
 			async openFollowUp(item) {
 				this.currentItem = item
+				this.followHistory = []
 				this.showFollowUp = true
 				try {
 					const res = await getMoreContactList({
@@ -728,6 +728,31 @@
 		transform: rotate(45deg);
 	}
 
+	.meta-row {
+		display: flex;
+		align-items: center;
+		width: 100%;
+		padding: 10rpx 0;
+		box-sizing: border-box;
+	}
+
+	.meta-label {
+		width: 170rpx;
+		flex-shrink: 0;
+		font-size: 26rpx;
+		color: #a8b0be;
+	}
+
+	.meta-value {
+		flex: 1;
+		min-width: 0;
+		font-size: 28rpx;
+		color: #1a2233;
+		line-height: 1.5;
+		word-break: break-all;
+		overflow-wrap: break-word;
+	}
+
 	.field-grid {
 		display: flex;
 		flex-wrap: wrap;
@@ -776,12 +801,15 @@
 	}
 
 	.card-footer {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
 		margin-top: 20rpx;
 		padding-top: 20rpx;
 		border-top: 1rpx solid #f0f2f5;
+	}
+
+	.footer-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
 	}
 
 	.footer-actions {
