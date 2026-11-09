@@ -32,8 +32,8 @@
 						<view class="dashboard__card-top" :style="{ background: getCardColor(idx) }"></view>
 						<!-- 卡片第一行：未读徽标单独成行，靠右 -->
 						<view class="dashboard__card-flag">
-							<view class="dashboard__card-badge" v-if="item.value > 0">
-								<text class="dashboard__card-badge-text">{{ item.value }}</text>
+							<view class="dashboard__card-badge" v-if="item.notReadCount > 0">
+								<text class="dashboard__card-badge-text">{{ item.notReadCount }}</text>
 							</view>
 						</view>
 						<view class="dashboard__card-head">
@@ -90,24 +90,35 @@
 	import {
 		isLoggedIn
 	} from '@/utils/auth'
+	import {
+		setPendingMenu,
+		takePendingMenu
+	} from '@/utils/menuIntent'
 
 	export default {
 		data() {
 			return {
 				statusBarHeight: 20,
 				isDrawerOpen: false,
-				activeMenuId: 2538,
+				activeMenuId: null,
 				activeName: '数据看板',
 				menuList: [],
-				dashboardGroups: []
+				dashboardGroups: [],
+				pendingMenu: null
 			}
 		},
-		onLoad() {
+		onLoad(options) {
+			// 记录菜单跳转带过来的目标菜单，用于对齐左侧抽屉的选中项
+			this.menuQuery = options || {}
 			this.initStatusBarHeight()
 			this.loadMenuData()
 		},
 		onShow() {
 			this.checkLoginStatus()
+			// 从别的看板页回退/跳转过来时，对齐抽屉选中态
+			this.consumePendingMenu()
+			// 每次进入本页都重新查询看板数据（首屏也走这里，不依赖菜单接口是否已返回）
+			this.loadDashboardData()
 		},
 		methods: {
 			// 初始化状态栏高度
@@ -134,17 +145,57 @@
 				}
 			},
 
+			// 消费“刚点过的菜单”：跳转/回退到本页后把选中态对齐到那条菜单
+			consumePendingMenu() {
+				const pending = takePendingMenu()
+				if (!pending) return
+				this.pendingMenu = pending
+				// 菜单还没加载完就先记下，等 loadMenuData 结束后再对齐
+				if (this.menuList.length > 0) {
+					this.applyMenuSelection(pending)
+				}
+			},
+
+			// 按菜单对象对齐选中态（id 可能来自 URL 字符串，统一转字符串比较）
+			applyMenuSelection(menu) {
+				if (!menu) return
+				const matched = this.menuList.find(m => String(m.id) === String(menu.id))
+				if (!matched) return
+				this.activeMenuId = matched.id
+				this.activeName = matched.name
+			},
+
 			// 加载菜单列表
 			async loadMenuData() {
 				try {
 					const res = await getMenuList()
 					if (res.code === 1000 && res.content) {
 						this.menuList = res.content
-						// 默认选中第一条菜单并执行对应逻辑
+						// 默认选中第一条菜单；若从抽屉菜单跳转而来，优先对齐带过来的那条菜单
+						// 只做高亮 + 拉取看板，不触发跳转（避免进入页面就被自动跳走）
 						if (this.menuList.length > 0) {
-							this.activeMenuId = this.menuList[0].id
-							this.activeName = this.menuList[0].name
-							this.onMenuItemClick(this.menuList[0])
+							let defaultIndex = 0
+							const presetKey = (this.menuQuery || {}).menuId || (this.menuQuery || {}).id
+							if (presetKey) {
+								const matched = this.menuList.findIndex(m => String(m.id) === String(presetKey))
+								if (matched > -1) defaultIndex = matched
+							} else if ((this.menuQuery || {}).name) {
+								const matched = this.menuList.findIndex(m => m.name === this.menuQuery.name)
+								if (matched > -1) defaultIndex = matched
+							} else {
+								// 无跳转参数时，优先选真正指向当前页面的菜单，保证“选中 = 当前页”
+								const routeMatched = this.menuList.findIndex(m => this.menuBelongsToCurrentPage(m))
+								if (routeMatched > -1) defaultIndex = routeMatched
+							}
+							const defaultMenu = this.menuList[defaultIndex]
+							this.activeMenuId = defaultMenu.id
+							this.activeName = defaultMenu.name
+							// 若期间收到过“点击意图”，以它为准（刚点击的那条菜单优先）
+							if (this.pendingMenu) {
+								this.applyMenuSelection(this.pendingMenu)
+								this.pendingMenu = null
+							}
+							// 看板数据统一由 onShow 拉取，这里不再重复请求
 						}
 					}
 				} catch (err) {
@@ -183,18 +234,63 @@
 				})
 			},
 
+			// 取当前页面路由（带前导斜杠），用于判断菜单是否指向自己
+			getCurrentPath() {
+				try {
+					const pages = getCurrentPages()
+					const current = pages[pages.length - 1]
+					return current ? `/${current.route}` : ''
+				} catch (e) {
+					return ''
+				}
+			},
+
+			// 路由归一化：去参数、补齐前导斜杠（菜单里的 path 可能写成 pages/xxx 不带斜杠）
+			normalizePath(path) {
+				const pure = String(path || '').split('?')[0]
+				if (!pure) return ''
+				return pure.charAt(0) === '/' ? pure : `/${pure}`
+			},
+
+			// 判断某条菜单的 path 是否指向当前页面
+			menuBelongsToCurrentPage(menu) {
+				const target = this.normalizePath(menu && menu.path)
+				if (!target) return false
+				return target === this.getCurrentPath()
+			},
+
 			// 菜单点击
 			onMenuItemClick(item) {
-				this.closeDrawer()
-				if (item.path) {
-					// 有 path 则跳转对应路径并携带参数
-					uni.navigateTo({
-						url: `${item.path}?name=${item.name}&id=${item.id}`
-					})
-				} else {
-					// 无 path 则在当前页面请求看板数据
+				const targetPath = this.normalizePath(item.path)
+				// 无 path 或指向当前页面：关抽屉 + 原地刷新看板，选中态就地跟随点击
+				if (!targetPath || targetPath === this.getCurrentPath()) {
+					this.activeMenuId = item.id
+					this.activeName = item.name
+					this.closeDrawer()
 					this.loadDashboardData()
+					return
 				}
+
+				// 跨页：把“点了哪条菜单”交给目标页，等抽屉动画走完再跳
+				// 注意不要在本页先改选中态，否则回退到本页时会残留错误的选中项
+				setPendingMenu(item)
+				this.closeDrawer()
+				setTimeout(() => {
+					this.gotoMenuPage(item)
+				}, 220)
+			},
+
+			// 菜单跳转：统一用 redirectTo —— 目标是新建实例还是栈里已有实例，表现一致，页面栈不增长
+			gotoMenuPage(item) {
+				const sep = String(item.path).includes('?') ? '&' : '?'
+				const url = `${item.path}${sep}menuId=${item.id}&id=${item.id}&name=${encodeURIComponent(item.name)}`
+				uni.redirectTo({
+					url,
+					fail: () => {
+						// 个别端对 redirectTo 有限制（如目标是 tabBar 页）时兜底为 navigateTo
+						uni.navigateTo({ url })
+					}
+				})
 			},
 
 			// 打开抽屉

@@ -25,7 +25,15 @@
 			}
 		},
 		{
-			"path": "pages/test/test",
+			"path": "pages/dispatch/index",
+			"style": {
+				"navigationStyle": "custom",
+				"navigationBarBackgroundColor": "#F7F9FD",
+				"navigationBarTextStyle": "black"
+			}
+		},
+		{
+			"path": "pages/dispatch/list/index",
 			"style": {
 				"navigationStyle": "custom",
 				"navigationBarBackgroundColor": "#F7F9FD",

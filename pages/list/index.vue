@@ -513,8 +513,8 @@
 									icon: 'success'
 								})
 								this.showAction = false
-								// 提交成功后静默重新请求主列表，刷新最新状态（不显示加载遮罩）
-								this.loadData(false, true)
+								// 点评成功后从列表中移除该条（仅前端移除，不重新请求接口）
+								this.removeReviewedItem(this.currentActionItem)
 							} catch (err) {
 								console.error('点评提交失败:', err)
 								uni.showToast({
@@ -525,6 +525,26 @@
 						}
 					}
 				})
+			},
+
+			// 点评成功后仅在前端把该条从列表移除：
+			// 按 id 精确匹配删除，同时把 total 减掉对应条数，
+			// 避免“已移除的数据”被算进未加载范围导致分页判定错位
+			removeReviewedItem(item) {
+				if (!item) return
+				const before = this.listData.length
+				if (item.id != null) {
+					const targetId = item.id
+					this.listData = this.listData.filter(row => row.id !== targetId)
+				} else {
+					this.listData = this.listData.filter(row => row !== item)
+				}
+				const removed = before - this.listData.length
+				if (removed <= 0) return
+				if (this.total > 0) {
+					this.total = Math.max(this.total - removed, 0)
+					this.hasMore = this.listData.length < this.total
+				}
 			}
 		}
 	}
