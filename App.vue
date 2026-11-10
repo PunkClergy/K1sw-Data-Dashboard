@@ -6,8 +6,8 @@
 		globalData: {
 			version: '1.0.0'
 		},
+		// 启动时把 token 注入 http 层，业务代码不用再关心认证头
 		onLaunch() {
-			// 统一装配认证头：从本地登录态取 token 注入请求；未登录不注入
 			http.setAuthHeaderGetter(() => {
 				const token = getAuthToken()
 				return token ? { token: token } : null
@@ -22,7 +22,6 @@
 </script>
 
 <style>
-	/* 全局样式 */
 	page {
 		background-color: #f5f6fa;
 	}

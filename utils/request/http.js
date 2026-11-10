@@ -1,18 +1,15 @@
-// utils/request/http.js
-// 通用网络封装：基于 uni.request（App / 小程序 / H5 共用）
-// 纯网络层：不内置业务请求头；token 等认证头通过 setAuthHeaderGetter 按需装配。
-
+// 通用请求封装：统一 baseURL、loading、拦截器与认证头，App / 小程序 / H5 共用
 const defaultConfig = {
 	url: '',
 	method: 'GET',
 	timeout: 15000
 }
 
-// 后端基础地址：切换环境改这里，或运行时调用 http.setBaseURL(url)
-// const DEFAULT_BASE_URL = 'https://k1sw.wiselink.net.cn'  // 生产环境
-const DEFAULT_BASE_URL = 'http://192.168.10.100:8689'  // 本地开发环境
+// 切换环境：放开所需的一行并注释另一行，或运行时调 http.setBaseURL(url)
+const DEFAULT_BASE_URL = 'https://k1sw.wiselink.net.cn'  // 生产环境
+// const DEFAULT_BASE_URL = 'http://192.168.10.100:8689'
 
-// 将对象参数序列化为 query string（跳过 null / undefined / 空串；数组按重复 key 拼接）
+// 对象转 query string：跳过 null / undefined / 空串，数组按重复 key 拼接
 function buildQueryString(params = {}) {
 	return Object.keys(params)
 		.filter(key => params[key] !== undefined && params[key] !== null && params[key] !== '')
@@ -29,36 +26,37 @@ function buildQueryString(params = {}) {
 		.join('&')
 }
 
+// 请求实例：支持运行时换 baseURL、开关 loading、注入认证头
 class Http {
 	constructor(config = {}) {
 		this.baseURL = config.baseURL || DEFAULT_BASE_URL
 		this.interceptor = {}
 		this.authHeaderGetter = null
-		this.showLoading = true  // 全局默认开启 loading
-		this.loadingCount = 0    // 并发请求计数器
+		this.showLoading = true
+		this.loadingCount = 0
 	}
 
-	// 运行时切换基础地址
+	// 运行时切换环境地址
 	setBaseURL(url) {
 		this.baseURL = url || ''
 	}
 
-	// 设置全局 loading 开关
+	// 全局开关 loading 遮罩
 	setLoading(enabled) {
 		this.showLoading = !!enabled
 	}
 
-	// 注册请求 / 响应拦截器：{ request(config) => config, response(res) => res }
+	// 可选的请求 / 响应拦截器
 	setInterceptor(interceptor) {
 		this.interceptor = interceptor || {}
 	}
 
-	// 注册认证头工厂：返回 { 'Header-Name': value }；返回 null / {} 时不注入
+	// 认证头注入：每次请求前回调取 token，网络层不耦合登录态
 	setAuthHeaderGetter(fn) {
 		this.authHeaderGetter = typeof fn === 'function' ? fn : null
 	}
 
-	// 显示 loading
+	// 计数式 loading：并发请求时等最后一个结束才关闭
 	_showLoading() {
 		if (!this.showLoading) return
 		this.loadingCount++
@@ -70,7 +68,6 @@ class Http {
 		}
 	}
 
-	// 隐藏 loading
 	_hideLoading() {
 		if (!this.showLoading) return
 		this.loadingCount = Math.max(0, this.loadingCount - 1)
@@ -79,45 +76,43 @@ class Http {
 		}
 	}
 
+	// 统一入口：拼 query、转表单、注入 header，错误归一成 { code, msg }
 	async request(config) {
 		let mergedConfig = {
 			...defaultConfig,
 			...config
 		}
 
-		// 请求拦截器
 		if (typeof this.interceptor.request === 'function') {
 			mergedConfig = this.interceptor.request(mergedConfig)
 		}
 
-		// 拼接 baseURL + path + query
 		let url = this.baseURL + mergedConfig.url
 		if (mergedConfig.params) {
 			const query = buildQueryString(mergedConfig.params)
 			if (query) url += (url.includes('?') ? '&' : '?') + query
 		}
 
-		// form 表单：统一转为字符串键值对；JSON 请求保持对象原样交给 uni.request
 		let requestData = mergedConfig.data || {}
 		if (mergedConfig.isFormData) {
 			const formData = {}
 			for (const key in requestData) {
 				if (requestData.hasOwnProperty(key)) {
-					formData[key] = requestData[key] === undefined || requestData[key] === null
-						? ''
-						: String(requestData[key])
+					formData[key] = requestData[key] === undefined || requestData[key] === null ?
+						'' :
+						String(requestData[key])
 				}
 			}
 			requestData = formData
 		}
 
-		// 通用 Content-Type：form 表单用 urlencoded，其余用 JSON
-		const header = { ...(mergedConfig.header || {}) }
-		header['content-type'] = mergedConfig.isFormData
-			? 'application/x-www-form-urlencoded'
-			: 'application/json'
+		const header = {
+			...(mergedConfig.header || {})
+		}
+		header['content-type'] = mergedConfig.isFormData ?
+			'application/x-www-form-urlencoded' :
+			'application/json'
 
-		// 认证头装配（未注册则跳过，封装保持通用）
 		if (typeof this.authHeaderGetter === 'function') {
 			const authHeaders = this.authHeaderGetter()
 			if (authHeaders && typeof authHeaders === 'object') {
@@ -126,12 +121,10 @@ class Http {
 		}
 		mergedConfig.header = header
 
-		// 自动 loading
 		if (mergedConfig.loading !== false) {
 			this._showLoading()
 		}
 
-		// 发起请求；网络层失败（断网、域名不通等）统一归一为错误对象
 		let response
 		try {
 			response = await uni.request({
@@ -146,14 +139,17 @@ class Http {
 			if (mergedConfig.loading !== false) {
 				this._hideLoading()
 			}
-			return Promise.reject({ code: -1, msg: '网络异常，请稍后重试', raw: err })
+			return Promise.reject({
+				code: -1,
+				msg: '网络异常，请稍后重试',
+				raw: err
+			})
 		}
 
 		if (mergedConfig.loading !== false) {
 			this._hideLoading()
 		}
 
-		// 响应拦截器
 		let res = response
 		if (typeof this.interceptor.response === 'function') {
 			res = this.interceptor.response(response)
@@ -163,32 +159,61 @@ class Http {
 			return res.data
 		}
 		console.error('接口返回异常:', res)
-		return Promise.reject({ code: res.statusCode, msg: '请求失败', data: res.data })
+		return Promise.reject({
+			code: res.statusCode,
+			msg: '请求失败',
+			data: res.data
+		})
 	}
 
 	get(url, params, config) {
-		return this.request({ ...config, url, method: 'GET', params })
+		return this.request({
+			...config,
+			url,
+			method: 'GET',
+			params
+		})
 	}
 
 	post(url, data, config) {
-		return this.request({ ...config, url, method: 'POST', data })
+		return this.request({
+			...config,
+			url,
+			method: 'POST',
+			data
+		})
 	}
 
-	// POST application/x-www-form-urlencoded
 	postFormData(url, data, config) {
-		return this.request({ ...config, url, method: 'POST', data, isFormData: true })
+		return this.request({
+			...config,
+			url,
+			method: 'POST',
+			data,
+			isFormData: true
+		})
 	}
 
 	put(url, data, config) {
-		return this.request({ ...config, url, method: 'PUT', data })
+		return this.request({
+			...config,
+			url,
+			method: 'PUT',
+			data
+		})
 	}
 
 	del(url, params, config) {
-		return this.request({ ...config, url, method: 'DELETE', params })
+		return this.request({
+			...config,
+			url,
+			method: 'DELETE',
+			params
+		})
 	}
 }
 
-// 全局单例导出
+// 全局单例，App.vue 启动时注入认证头
 export const http = new Http({
 	baseURL: DEFAULT_BASE_URL
 })

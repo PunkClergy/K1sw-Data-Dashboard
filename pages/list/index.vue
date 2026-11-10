@@ -1,8 +1,8 @@
 <template>
-	<!-- 弹窗打开时锁定原生页面滚动，不脱离文档流，避免关闭后回到顶部 -->
+	<!-- 客户列表页：筛选 / 触底分页 / 跟进记录 / 公司详情 / 点评 / 已读；弹窗打开时锁页面滚动 -->
 	<page-meta :page-style="(showFilter || showFollowUp || showCompanyInfo || showAction) ? 'overflow: hidden;' : ''" />
 	<view class="page" :class="{ 'page-locked': showFilter || showFollowUp || showCompanyInfo || showAction }">
-		<!-- 自定义导航栏 -->
+
 		<view class="nav-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
 			<view class="nav-content">
 				<view class="back-btn" @tap="goBack">
@@ -15,7 +15,6 @@
 			</view>
 		</view>
 
-		<!-- 工具条：筛选 -->
 		<view class="toolbar" :style="{ top: (statusBarHeight + 44) + 'px' }">
 			<view class="toolbar-left">
 				<view class="tool-chip" @tap="showFilter = true">
@@ -28,10 +27,10 @@
 			</view>
 		</view>
 
-		<!-- 列表内容 -->
 		<view class="list" :style="{ paddingTop: (statusBarHeight + 100) + 'px' }">
+			<!-- is-read 决定已读底色，redStates 由后端 isread 归一得到 -->
 			<view class="list-card" v-for="item in listData" :key="item.id" :class="{ 'is-read': item.redStates === true }">
-				<!-- 卡片头部：公司名称 -->
+
 				<view class="card-head">
 					<view class="head-left">
 						<text class="company-name">{{ item.createdate }}</text>
@@ -41,7 +40,6 @@
 					</view>
 				</view>
 
-				<!-- 卡片字段：客户基础信息 + 沟通内容 -->
 				<view class="field-grid">
 					<view class="meta-row">
 						<text class="meta-label">绑定销售员</text>
@@ -86,7 +84,6 @@
 			</view>
 		</view>
 
-		<!-- 筛选弹窗 -->
 		<view class="filter-mask show" v-if="showFilter" @tap="showFilter = false" @touchmove.stop.prevent>
 			<view class="filter-panel" @tap.stop>
 				<view class="filter-head">
@@ -107,8 +104,9 @@
 								<view class="chip" :class="{ active: filterForm.isReview === 1 }" @tap="onReviewedChange(1)">已点评</view>
 							</view>
 						</view>
-						<!-- 销售员：从派工入口进入时该销售员固定，只展示不可改 -->
+
 						<view class="form-row">
+							<!-- 销售员 / 所属节点都展示，但由入口决定是否可改（不可改时用 is-locked 样式） -->
 							<text class="form-label">销售员</text>
 							<picker v-if="fromPage !== 'dispatch'" class="form-picker" :range="salesList" @change="onSalesChange">
 								<view class="form-picker-value">{{ filterForm.salerName || '请选择' }}</view>
@@ -117,7 +115,7 @@
 								<view class="form-picker-value is-locked">{{ filterForm.salerName || '-' }}</view>
 							</view>
 						</view>
-						<!-- 所属节点：从首页入口进入时该节点固定，只展示不可改 -->
+
 						<view class="form-row">
 							<text class="form-label">所属节点</text>
 							<picker v-if="fromPage !== 'index'" class="form-picker" :range="nodeList" @change="onNodeChange">
@@ -147,10 +145,8 @@
 				</view>
 			</view>
 
-			<!-- 操作弹窗 -->
 		</view>
 
-		<!-- 公司详情弹窗 -->
 		<view class="info-mask show" v-if="showCompanyInfo" @tap="showCompanyInfo = false"
 			@touchmove.stop.prevent>
 			<view class="info-panel" @tap.stop>
@@ -180,7 +176,6 @@
 			</view>
 		</view>
 
-		<!-- 跟进记录弹窗 -->
 		<view class="follow-mask show" v-if="showFollowUp" @tap="showFollowUp = false" @touchmove.stop.prevent>
 			<view class="follow-panel" @tap.stop>
 				<view class="follow-header">
@@ -211,7 +206,6 @@
 			</view>
 		</view>
 
-		<!-- 操作弹窗 -->
 		<view class="action-mask show" v-if="showAction" @tap="showAction = false" @touchmove.stop.prevent>
 			<view class="action-panel" @tap.stop>
 				<view class="action-header">
@@ -224,7 +218,7 @@
 					</view>
 				</view>
 				<view class="action-body">
-					<!-- 历史点评记录（点评人 / 时间 / 内容） -->
+
 					<view class="review-card"
 						v-if="lastReview.reviewcontent || lastReview.reviewdate || lastReview.reviewman">
 						<view class="review-head">
@@ -236,7 +230,8 @@
 
 					<view class="action-input-wrap">
 						<textarea class="action-textarea" v-model="actionContent" />
-						<!-- 自定义占位文案：不用原生 placeholder，避免 iOS 上原生占位文字脱离弹窗、飘到列表上 -->
+
+						<!-- 占位文案用 text 自绘：iOS 上原生 textarea 的 placeholder 会穿透到列表且不受 opacity 控制 -->
 						<text class="action-placeholder" v-if="!actionContent">请输入点评内容，如未输入则默认提交【已阅】</text>
 					</view>
 					<view class="action-foot">
@@ -267,9 +262,7 @@
 				nodeType: '',
 				pageTitle: '',
 				step: '',
-				// 入口来源：index（首页卡片）/ dispatch（派工卡片），决定筛选弹窗显示销售员还是所属节点
 				fromPage: 'index',
-				// 所属节点下拉选项，取看板卡片名
 				nodeList: [],
 				showFilter: false,
 				showFollowUp: false,
@@ -301,26 +294,23 @@
 				loading: false
 			}
 		},
+		// 入口分流：dispatch 入口锁定销售员、index 入口锁定所属节点
 		onLoad(options) {
-			// #ifdef H5
+// #ifdef H5
 			this.statusBarHeight = 0
-			// #endif
-			// #ifndef H5
+// #endif
+// #ifndef H5
 			try {
 				const sys = uni.getSystemInfoSync()
 				this.statusBarHeight = sys.statusBarHeight || 20
 			} catch (e) {
 				this.statusBarHeight = 20
 			}
-			// #endif
+// #endif
 
-			// 路由参数统一解码：小程序端不会自动解码，H5 已解码时不再重复处理
 			const entryName = this.decodeQueryValue(options.type)
 			this.nodeType = entryName
 			this.pageTitle = this.decodeQueryValue(options.name)
-			// 两个入口传的 name 落到不同查询参数：
-			// 派工页进入 → 按销售员筛选（salerName），筛选弹窗给“所属节点”下拉
-			// 首页进入   → 按节点类型筛选（step），筛选弹窗给“销售员”下拉
 			this.fromPage = (options.from || 'index') === 'dispatch' ? 'dispatch' : 'index'
 			if (this.fromPage === 'dispatch') {
 				this.step = ''
@@ -333,6 +323,7 @@
 			this.loadData()
 			this.loadSellerList()
 		},
+		// 触底加载下一页，hasMore 由总数与已加载条数推算
 		onReachBottom() {
 			if (this.hasMore && !this.loading) {
 				this.page++
@@ -340,8 +331,6 @@
 			}
 		},
 		methods: {
-			// 所属节点选项：取 /contaceApi/stepList
-			// 后端若返回字符串数组直接用，返回对象数组则按 name/stepName/step 兜底取值
 			async loadNodeList() {
 				try {
 					const res = await getStepList()
@@ -356,7 +345,6 @@
 			onNodeChange(e) {
 				this.step = this.nodeList[e.detail.value] || ''
 			},
-			// 路由参数兜底解码：H5 已自动解码时不重复处理
 			decodeQueryValue(val) {
 				if (val == null) return ''
 				const str = String(val)
@@ -377,13 +365,15 @@
 					console.error('销售员列表加载失败:', err)
 				}
 			},
-			// 已读态归一：后端 isread 为 true 的行，初始化即按已读渲染（兼容 true / "true" / 1 / "1"）
+			// 后端 isread 可能是 boolean / 字符串 / 数字，统一归一为 redStates
 			normalizeReadState(rows) {
 				return rows.map(row => ({
 					...row,
 					redStates: row.isread === true || row.isread === 'true' || row.isread === 1 || row.isread === '1'
 				}))
 			},
+			// 分页查询：page 变化才累加，首页查询会重置 total 与 hasMore
+			// silent 用于静默刷新（不弹全局 loading）
 			async loadData(isLoadMore = false, silent = false) {
 				if (this.loading) return
 				this.loading = true
@@ -413,11 +403,9 @@
 						} else {
 							this.listData = rows
 						}
-						// 总数只在首屏/筛选时写入，翻页加载更多不重复覆盖
 						if (!isLoadMore) {
 							this.total = Number(res.count) || 0
 						}
-						// 分页结束判定：优先用总数；后端未返回总数时回退单页长度判断
 						if (this.total > 0) {
 							this.hasMore = this.listData.length < this.total
 						} else {
@@ -435,7 +423,6 @@
 				}
 			},
 			resetFilter() {
-				// 锁定项（入口带过来的销售员 / 节点）不参与重置，否则会清掉必带条件
 				const lockedSalerName = this.fromPage === 'dispatch' ? this.filterForm.salerName : ''
 				const lockedStep = this.fromPage === 'index' ? this.step : ''
 				this.filterForm = {
@@ -459,7 +446,6 @@
 			onEndDateChange(e) {
 				this.filterForm.endDate = e.detail.value
 			},
-			// 复制文本
 			copyText(text) {
 				if (!text || text === '-') {
 					uni.showToast({ title: '暂无可复制内容', icon: 'none' })
@@ -479,8 +465,7 @@
 				this.showFilter = false
 				this.loadData()
 			},
-			// 标记客户已读：仅「已读」按钮触发
-			// 已读或同一卡片请求进行中则跳过，避免重复请求
+			// 标记已读：成功后本地立即置为已读底色，不重新拉列表
 			async markCardRead(item) {
 				if (!item || item.redStates === true || item._readPending) return
 				item._readPending = true
@@ -509,6 +494,7 @@
 					item._readPending = false
 				}
 			},
+			// 跟进弹窗：按 orderid + type 拉该客户的沟通记录
 			async openFollowUp(item) {
 				this.currentItem = item
 				this.followHistory = []
@@ -550,6 +536,7 @@
 					})
 				}
 			},
+			// 点评弹窗：先回填最近一次点评，再允许追加新内容
 			openAction(item) {
 				this.currentActionItem = item
 				this.actionContent = ''
@@ -560,6 +547,7 @@
 				}
 				this.showAction = true
 			},
+			// 未输入内容默认提交「已阅」；成功后只在前端移除该卡片，不重新请求
 			async submitAction() {
 				uni.showModal({
 					title: '确认提交',
@@ -578,7 +566,6 @@
 									icon: 'success'
 								})
 								this.showAction = false
-								// 点评成功后从列表中移除该条（仅前端移除，不重新请求接口）
 								this.removeReviewedItem(this.currentActionItem)
 							} catch (err) {
 								console.error('点评提交失败:', err)
@@ -592,9 +579,6 @@
 				})
 			},
 
-			// 点评成功后仅在前端把该条从列表移除：
-			// 按 id 精确匹配删除，同时把 total 减掉对应条数，
-			// 避免“已移除的数据”被算进未加载范围导致分页判定错位
 			removeReviewedItem(item) {
 				if (!item) return
 				const before = this.listData.length
@@ -625,7 +609,6 @@
 		overflow: hidden;
 	}
 
-	/* ===== 导航栏 ===== */
 	.nav-bar {
 		position: fixed;
 		top: 0;
@@ -690,7 +673,6 @@
 		width: 64rpx;
 	}
 
-	/* ===== 工具条 ===== */
 	.toolbar {
 		position: fixed;
 		left: 0;
@@ -745,7 +727,6 @@
 		color: #c8d0dc;
 	}
 
-	/* ===== 列表卡片 ===== */
 	.list {
 		padding: 24rpx 24rpx 48rpx;
 	}
@@ -759,7 +740,6 @@
 		transition: background 0.2s, box-shadow 0.2s;
 	}
 
-	/* 已读态卡片底色：比页面浅蓝背景明显更沉一档，避免和背景糊在一起 */
 	.list-card.is-read {
 		background: #e3e8f1;
 		border: 1rpx solid #d7dee9;
@@ -840,7 +820,6 @@
 		justify-content: center;
 	}
 
-	/* 底部栏的「已读」小按钮：紧跟在「显示详情/收起」右侧 */
 	.read-btn {
 		padding: 8rpx 22rpx;
 		min-width: 0;
@@ -989,7 +968,6 @@
 		color: #a8b0be;
 	}
 
-	/* ===== 跟进记录弹窗 ===== */
 	.follow-mask {
 		position: fixed;
 		top: 0;
@@ -1130,7 +1108,6 @@
 		border: none;
 	}
 
-	/* ===== 跟进记录弹窗内容 ===== */
 	.follow-history {
 		width: 96%;
 		height: calc(70vh - 120rpx);
@@ -1188,7 +1165,6 @@
 		text-align: center;
 	}
 
-	/* ===== 操作弹窗 ===== */
 	.action-mask {
 		position: fixed;
 		top: 0;
@@ -1217,7 +1193,7 @@
 		background: #f7f9fd;
 		border-radius: 32rpx 32rpx 0 0;
 		padding-bottom: env(safe-area-inset-bottom);
-		/* iOS 上把弹窗内容裁剪在自己的圆角盒子里，防止内部输入框的文字飘到下层列表 */
+
 		overflow: hidden;
 		z-index: 1;
 		transform: translateZ(0);
@@ -1303,7 +1279,6 @@
 		padding: 24rpx;
 	}
 
-	/* 输入框容器：占位文案绝对定位在输入框内部，不依赖原生 placeholder */
 	.action-input-wrap {
 		position: relative;
 		z-index: 1;
@@ -1331,7 +1306,7 @@
 		font-size: 30rpx;
 		line-height: 1.5;
 		color: #a8b0be;
-		/* 占位文案只做展示，不拦截点击，保证能点到底下的输入框 */
+
 		pointer-events: none;
 		z-index: 2;
 	}
@@ -1374,7 +1349,6 @@
 		color: #ffffff;
 	}
 
-	/* ===== 公司详情弹窗 ===== */
 	.info-mask {
 		position: fixed;
 		top: 0;
@@ -1486,7 +1460,6 @@
 		cursor: pointer;
 	}
 
-	/* ===== 筛选弹窗 ===== */
 	.filter-mask {
 		position: fixed;
 		top: 0;
@@ -1604,7 +1577,6 @@
 		text-overflow: ellipsis;
 	}
 
-	/* 不可更改的筛选项：底色与描边都弱化，文字降一档，和可操作项区分开 */
 	.form-picker-value.is-locked {
 		background: #f1f5f9;
 		border-color: #e2e8f0;

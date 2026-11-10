@@ -1,13 +1,12 @@
 <template>
+	<!-- 登录页：账号密码登录，成功后 reLaunch 进首页 -->
 	<view class="page">
-		<!-- 自定义导航栏 -->
 		<view class="nav-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
 			<view class="nav-content">
 				<text class="nav-title">{{ navTitle }}</text>
 			</view>
 		</view>
 
-		<!-- 居中内容区：品牌区 + 表单卡片 -->
 		<view class="content" :style="{ paddingTop: contentPadTop + 'px' }">
 			<view class="brand">
 				<image class="logo" src="/static/images/logo.png" mode="aspectFit"></image>
@@ -48,7 +47,6 @@
 			</view>
 		</view>
 
-		<!-- 底部公司介绍区（约占屏幕 1/4） -->
 		<view class="company">
 			<text class="company-title">WiseLink Fleet Digital Key</text>
 			<text class="company-desc">面向车队运营与个人车主的数字化用车工具，提供云端控车、车辆状态与用车权限统一管理。</text>
@@ -66,7 +64,6 @@
 			return {
 				statusBarHeight: 20,
 				contentPadTop: 44,
-				// 头部标题：登录页无菜单上下文，取品牌名（模板不写死，便于统一改文案）
 				navTitle: 'K1SW 数据看板',
 				username: '',
 				password: '',
@@ -78,11 +75,11 @@
 			}
 		},
 		onLoad() {
-			// #ifdef H5
+// #ifdef H5
 			this.statusBarHeight = 0
 			this.contentPadTop = 44
-			// #endif
-			// #ifndef H5
+// #endif
+// #ifndef H5
 			try {
 				const sys = uni.getSystemInfoSync()
 				this.statusBarHeight = sys.statusBarHeight || 20
@@ -90,20 +87,19 @@
 				this.statusBarHeight = 20
 			}
 			this.contentPadTop = this.statusBarHeight + 44
-			// #endif
+// #endif
 		},
+		// 已登录直接进首页，避免回退到登录页
 		onShow() {
-			// 已登录则直接进入首页，避免重复登录
 			if (isLoggedIn()) {
 				uni.reLaunch({ url: '/pages/index/index' })
 			}
 		},
 		methods: {
-			// 输入值显式同步到 data，避免 v-model 在某些端与受控 focus 跳变不同步
 			onInput(field, e) {
 				this[field] = e.detail.value
 			},
-			// 聚焦：幂等置 true（未聚焦才触发），避免反复 false→true 跳变导致输入框重建、正在输入的值丢失
+			// 点整行聚焦输入框（input 自身点击区域偏窄），同时高亮当前字段
 			setFocus(name) {
 				this.focusField = name
 				const focusKey = name === 'lock' ? 'pwdFocus' : 'accountFocus'
@@ -133,6 +129,7 @@
 				}
 				return true
 			},
+			// 登录成功：code === 1000 保存登录态并跳首页；其余情况提示 msg
 			async handleLogin() {
 				if (this.submitting) return
 				if (!this.validateForm()) return
@@ -147,7 +144,6 @@
 					uni.hideLoading()
 					this.submitting = false
 
-					// 沿用旧约定：code === 1000 为成功，用户信息（含 token 等）存入本地登录态
 					if (res && res.code === 1000) {
 						saveAuth(res.content || {})
 						uni.reLaunch({ url: '/pages/index/index' })
@@ -179,7 +175,6 @@
 		background: linear-gradient(180deg, #f7f9fd 0%, #edf1f7 100%);
 	}
 
-	/* ===== 自定义导航栏（绝对叠加，不占用内容流高度） ===== */
 	.nav-bar {
 		position: absolute;
 		top: 0;
@@ -201,7 +196,6 @@
 		color: #1a2233;
 	}
 
-	/* ===== 居中内容区 ===== */
 	.content {
 		flex: 1;
 		display: flex;
@@ -211,7 +205,6 @@
 		box-sizing: border-box;
 	}
 
-	/* ===== 品牌区 ===== */
 	.brand {
 		display: flex;
 		flex-direction: column;
@@ -239,7 +232,6 @@
 		letter-spacing: 1rpx;
 	}
 
-	/* ===== 表单卡片 ===== */
 	.card {
 		background: #ffffff;
 		border-radius: 28rpx;
@@ -290,7 +282,6 @@
 		position: relative;
 	}
 
-	/* 账号图标：头部 + 肩部 */
 	.icon-user::before {
 		content: '';
 		position: absolute;
@@ -316,7 +307,6 @@
 		border-bottom: none;
 	}
 
-	/* 密码图标：锁梁 + 锁体 */
 	.icon-lock::before {
 		content: '';
 		position: absolute;
@@ -367,7 +357,6 @@
 		color: #a8b0be;
 	}
 
-	/* ===== 登录按钮 ===== */
 	.login-btn {
 		margin-top: 24rpx;
 		height: 96rpx;
@@ -396,7 +385,6 @@
 		transform: scale(0.99);
 	}
 
-	/* ===== 底部公司介绍区（约占屏幕 1/4） ===== */
 	.company {
 		flex: 0 0 auto;
 		min-height: 24vh;

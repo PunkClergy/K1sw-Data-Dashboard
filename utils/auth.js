@@ -1,19 +1,15 @@
-// utils/auth.js
-// 登录态统一读写（替代散落的 storage 键名与空对象判断）
-
+// 登录态工具：本地缓存统一用 userKey 这一个 key
 const AUTH_STORAGE_KEY = 'userKey'
 
-// 保存登录信息（登录成功后调用）
 export function saveAuth(info) {
 	uni.setStorageSync(AUTH_STORAGE_KEY, info || {})
 }
 
-// 读取登录信息，未登录返回 null
 export function getAuth() {
 	return uni.getStorageSync(AUTH_STORAGE_KEY) || null
 }
 
-// 提取 token（兼容常见字段名；无则返回 null）
+// 兼容后端返回字符串或对象两种登录态结构，统一取 token
 export function getAuthToken() {
 	const auth = getAuth()
 	if (!auth) return null
@@ -21,12 +17,11 @@ export function getAuthToken() {
 	return auth.token || auth.accessToken || null
 }
 
-// 清除登录态（退出登录调用）
 export function clearAuth() {
 	uni.removeStorageSync(AUTH_STORAGE_KEY)
 }
 
-// 是否已登录：兼容对象、字符串两类存储形态
+// 页面 onShow 的登录判定：有登录态才算已登录
 export function isLoggedIn() {
 	const auth = getAuth()
 	if (!auth) return false

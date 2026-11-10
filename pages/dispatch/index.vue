@@ -1,6 +1,7 @@
 <template>
+	<!-- 派工页看板：按人一张卡片，每张卡片独占一行 4 个指标 -->
 	<view class="page">
-		<!-- 顶部导航栏 -->
+
 		<view class="navbar" :style="{ paddingTop: statusBarHeight + 'px' }">
 			<view class="navbar__inner">
 				<view class="navbar__menu-btn" @tap="openDrawer">
@@ -15,15 +16,13 @@
 			</view>
 		</view>
 
-		<!-- 主内容区 -->
 		<view class="content" :style="{ paddingTop: (statusBarHeight + 56) + 'px' }">
-			<!-- 欢迎横幅 -->
+
 			<view class="banner">
 				<text class="banner__title">{{activeName}}</text>
 				<text class="banner__sub">只统计当前账号名下的客户</text>
 			</view>
 
-			<!-- 派工卡片（每个销售员一张卡：姓名 + 累计回复数量 / 累计派工数量 / 本账号已读数量 / 今日完成派工数量） -->
 			<view class="dispatch-cards">
 				<view class="dispatch-card" v-for="(item, idx) in dispatchRows" :key="item.name + idx"
 					@tap="onCardClick(item)">
@@ -32,14 +31,15 @@
 						<view class="dispatch-card__dot" :style="{ background: getCardColor(idx) }"></view>
 						<text class="dispatch-card__name">{{ item.name || '未命名' }}</text>
 					</view>
+					<!-- 指标主次：累计派工为主值放大，其余三项为次值 -->
 					<view class="dispatch-card__metrics">
-						<!-- 主数值：累计派工，字号最大、最突出 -->
+
 						<view class="dispatch-card__metric dispatch-card__metric--primary">
 							<text class="dispatch-card__metric-label">累计派工</text>
 							<text
 								class="dispatch-card__metric-value dispatch-card__metric-value--primary">{{ formatNumber(item.dispatchCount) }}</text>
 						</view>
-						<!-- 次数值：累计回复 / 本账号已读 / 今日完成 -->
+
 						<view class="dispatch-card__metric">
 							<text class="dispatch-card__metric-label">累计回复</text>
 							<text
@@ -58,20 +58,17 @@
 					</view>
 				</view>
 
-				<!-- 空态 -->
 				<view class="dispatch-cards__empty" v-if="!dispatchRows.length">
 					<text class="dispatch-cards__empty-text">暂无派工数据</text>
 				</view>
 			</view>
 		</view>
 
-		<!-- 抽屉遮罩层 -->
 		<view class="drawer-mask" :class="{ 'drawer-mask--visible': isDrawerOpen }" @tap="closeDrawer"
 			@touchmove.stop.prevent></view>
 
-		<!-- 左侧抽屉导航 -->
 		<view class="drawer" :class="{ 'drawer--open': isDrawerOpen }">
-			<!-- 抽屉头部品牌区 -->
+
 			<view class="drawer__header">
 				<view class="drawer__close" @tap="closeDrawer">
 					<text class="drawer__close-icon">✕</text>
@@ -81,7 +78,6 @@
 				<text class="drawer__slogan">Fleet Digital Key</text>
 			</view>
 
-			<!-- 抽屉菜单列表 -->
 			<scroll-view scroll-y class="drawer__menu">
 				<view class="drawer__menu-item" v-for="item in menuList" :key="item.id"
 					:class="{ 'drawer__menu-item--active': activeMenuId === item.id }" @tap="onMenuItemClick(item)">
@@ -89,7 +85,6 @@
 				</view>
 			</scroll-view>
 
-			<!-- 抽屉底部退出登录按钮 -->
 			<view class="drawer__footer">
 				<view class="drawer__logout-btn" @tap="handleLogout">
 					<text class="drawer__logout-text">退出登录</text>
@@ -127,26 +122,22 @@
 			}
 		},
 		computed: {
-			// 头部标题取当前选中菜单名（派工页即“派工”），菜单未返回时用品牌名兜底
 			navTitle() {
 				return this.activeName || this.appTitle
 			}
 		},
 		onLoad(options) {
-			// 记录菜单跳转带过来的目标菜单，用于对齐左侧抽屉的选中项
-			// 小程序端不会自动解码路由参数，先还原再参与 name 比对
 			this.menuQuery = options || {}
 			this.menuQuery.name = this.decodeQueryValue(this.menuQuery.name)
 			this.initStatusBarHeight()
 			this.loadMenuData()
 		},
+		// 只做登录校验和消费抽屉意图；数据由 loadMenuData 之后统一拉
 		onShow() {
 			this.checkLoginStatus()
-			// 从别的看板页回退/跳转过来时，对齐抽屉选中态
 			this.consumePendingMenu()
 		},
 		methods: {
-			// 路由参数兜底解码：只对含 % 的值解码，避免 H5 已自动解码时二次解码
 			decodeQueryValue(val) {
 				if (val == null) return ''
 				const str = String(val)
@@ -157,22 +148,20 @@
 					return str
 				}
 			},
-			// 初始化状态栏高度
 			initStatusBarHeight() {
-				// #ifdef H5
+// #ifdef H5
 				this.statusBarHeight = 0
-				// #endif
-				// #ifndef H5
+// #endif
+// #ifndef H5
 				try {
 					const sysInfo = uni.getSystemInfoSync()
 					this.statusBarHeight = sysInfo.statusBarHeight || 20
 				} catch (e) {
 					this.statusBarHeight = 20
 				}
-				// #endif
+// #endif
 			},
 
-			// 登录守卫校验
 			checkLoginStatus() {
 				if (!isLoggedIn()) {
 					uni.reLaunch({
@@ -181,18 +170,15 @@
 				}
 			},
 
-			// 消费“刚点过的菜单”：跳转/回退到本页后把选中态对齐到那条菜单
 			consumePendingMenu() {
 				const pending = takePendingMenu()
 				if (!pending) return
 				this.pendingMenu = pending
-				// 菜单还没加载完就先记下，等 loadMenuData 结束后再对齐
 				if (this.menuList.length > 0) {
 					this.applyMenuSelection(pending)
 				}
 			},
 
-			// 按菜单对象对齐选中态（id 可能来自 URL 字符串，统一转字符串比较）
 			applyMenuSelection(menu) {
 				if (!menu) return
 				const matched = this.menuList.find(m => String(m.id) === String(menu.id))
@@ -201,16 +187,13 @@
 				this.activeName = matched.name
 			},
 
-			// 加载菜单列表（菜单接口与首页公用）
 			async loadMenuData() {
 				try {
 					const res = await getMenuList()
 					if (res.code === 1000 && res.content) {
 						this.menuList = res.content
-						// 默认选中第二条菜单（派工页固定落在第二项），不足两条时回退第一条
-						// 若从抽屉菜单跳转而来，优先对齐带过来的那条菜单
-						// 这里只负责“高亮 + 标题 + 拉取本页看板”，不触发跳转
 						if (this.menuList.length > 0) {
+							// 派工页固定默认选中第 2 个菜单（数据看板在前），没有第 2 个则退回第 1 个
 							let defaultIndex = this.menuList.length > 1 ? 1 : 0
 							const presetKey = (this.menuQuery || {}).menuId || (this.menuQuery || {}).id
 							if (presetKey) {
@@ -220,14 +203,12 @@
 								const matched = this.menuList.findIndex(m => m.name === this.menuQuery.name)
 								if (matched > -1) defaultIndex = matched
 							} else {
-								// 无跳转参数时，优先选真正指向当前页面的菜单，保证“选中 = 当前页”
 								const routeMatched = this.menuList.findIndex(m => this.menuBelongsToCurrentPage(m))
 								if (routeMatched > -1) defaultIndex = routeMatched
 							}
 							const defaultMenu = this.menuList[defaultIndex]
 							this.activeMenuId = defaultMenu.id
 							this.activeName = defaultMenu.name
-							// 若期间收到过“点击意图”，以它为准（刚点击的那条菜单优先）
 							if (this.pendingMenu) {
 								this.applyMenuSelection(this.pendingMenu)
 								this.pendingMenu = null
@@ -240,10 +221,7 @@
 				}
 			},
 
-			// 加载派工看板数据
-			// 派工页走自己的接口 getDispatchFunnel（/reportApi/dispatchWork），不复用首页的 getCompanyFunnel
-			// 返回体取 res.content，格式 [{ name, num, num2, num3 }]
-			// 字段名若与后端不一致，只改 normalizeDispatchRows
+			// 数据来源 /reportApi/dispatchWork，字段与后端不一致，先归一再用
 			async loadDashboardData() {
 				try {
 					const res = await getDispatchFunnel()
@@ -256,46 +234,36 @@
 				}
 			},
 
-			// 接口数据归一化：把后端原始字段映射成卡片用的 4 个数 + 姓名
-			// 后端真实返回：{ allReplyCount, bindCompanyCount, realName, readReplyCount, todayReplyCount }
-			// 字段改名只改这里即可
+			// 字段映射：realName→姓名、bindCompanyCount→累计派工、allReplyCount→累计回复
+			// readReplyCount→本账号已读、todayReplyCount→今日完成；缺字段补 0，避免出现 undefined
 			normalizeDispatchRows(rows) {
 				if (!Array.isArray(rows)) return []
 				return rows.map(item => ({
-					// 姓名
 					name: item.realName || item.name || item.username || '',
-					// 累计派工数量
 					dispatchCount: item.bindCompanyCount != null ? item.bindCompanyCount : (item.num != null ? item.num : 0),
-					// 累计回复数量
 					replyCount: item.allReplyCount != null ? item.allReplyCount : 0,
-					// 本账号已读数量
 					readCount: item.readReplyCount != null ? item.readReplyCount : 0,
-					// 今日完成派工数量
 					todayCount: item.todayReplyCount != null ? item.todayReplyCount : 0
 				}))
 			},
 
-			// 数字格式化（千分位），空值/非法值统一显示 -
 			formatNumber(num) {
 				const n = Number(num)
 				return Number.isFinite(n) ? n.toLocaleString('en-US') : '-'
 			},
 
-			// 卡片颜色循环取值
 			getCardColor(index) {
 				const colors = ['#22d3ee', '#3b82f6', '#4ade80', '#fbbf24', '#f87171', '#a78bfa']
 				return colors[index % colors.length]
 			},
 
-			// 卡片点击跳转客户列表页（pages/list/index，与首页卡片进入的是同一个页面）
-			// from=dispatch → 列表页把 name 作为 salerName（销售员）查询参数
+			// 卡片进客户列表，from=dispatch 表示按「销售员」锁定筛选
 			onCardClick(item) {
 				uni.navigateTo({
 					url: `/pages/list/index?type=${encodeURIComponent(item.name)}&name=${encodeURIComponent(item.name)}&from=dispatch`
 				})
 			},
 
-			// 取当前页面路由（带前导斜杠），用于判断菜单是否指向自己
 			getCurrentPath() {
 				try {
 					const pages = getCurrentPages()
@@ -306,24 +274,20 @@
 				}
 			},
 
-			// 路由归一化：去参数、补齐前导斜杠（菜单里的 path 可能写成 pages/xxx 不带斜杠）
 			normalizePath(path) {
 				const pure = String(path || '').split('?')[0]
 				if (!pure) return ''
 				return pure.charAt(0) === '/' ? pure : `/${pure}`
 			},
 
-			// 判断某条菜单的 path 是否指向当前页面
 			menuBelongsToCurrentPage(menu) {
 				const target = this.normalizePath(menu && menu.path)
 				if (!target) return false
 				return target === this.getCurrentPath()
 			},
 
-			// 菜单点击
 			onMenuItemClick(item) {
 				const targetPath = this.normalizePath(item.path)
-				// 无 path 或指向当前页面：关抽屉 + 原地刷新看板，选中态就地跟随点击
 				if (!targetPath || targetPath === this.getCurrentPath()) {
 					this.activeMenuId = item.id
 					this.activeName = item.name
@@ -332,8 +296,6 @@
 					return
 				}
 
-				// 跨页：把“点了哪条菜单”交给目标页，等抽屉动画走完再跳
-				// 注意不要在本页先改选中态，否则回退到本页时会残留错误的选中项
 				setPendingMenu(item)
 				this.closeDrawer()
 				setTimeout(() => {
@@ -341,30 +303,25 @@
 				}, 220)
 			},
 
-			// 菜单跳转：统一用 redirectTo —— 目标是新建实例还是栈里已有实例，表现一致，页面栈不增长
 			gotoMenuPage(item) {
 				const sep = String(item.path).includes('?') ? '&' : '?'
 				const url = `${item.path}${sep}menuId=${item.id}&id=${item.id}&name=${encodeURIComponent(item.name)}`
 				uni.redirectTo({
 					url,
 					fail: () => {
-						// 个别端对 redirectTo 有限制（如目标是 tabBar 页）时兜底为 navigateTo
 						uni.navigateTo({ url })
 					}
 				})
 			},
 
-			// 打开抽屉
 			openDrawer() {
 				this.isDrawerOpen = true
 			},
 
-			// 关闭抽屉
 			closeDrawer() {
 				this.isDrawerOpen = false
 			},
 
-			// 退出登录
 			handleLogout() {
 				uni.showModal({
 					title: '提示',
@@ -389,7 +346,6 @@
 		background: linear-gradient(180deg, #f7f9fd 0%, #edf1f7 100%);
 	}
 
-	/* ===== 顶部导航栏 ===== */
 	.navbar {
 		position: fixed;
 		top: 0;
@@ -439,12 +395,10 @@
 		width: 64rpx;
 	}
 
-	/* ===== 主内容区 ===== */
 	.content {
 		padding: 32rpx 32rpx 48rpx;
 	}
 
-	/* ===== 欢迎横幅 ===== */
 	.banner {
 		position: relative;
 		background: linear-gradient(135deg, #2b6cb0 0%, #14b8a6 100%);
@@ -482,7 +436,6 @@
 		letter-spacing: 1rpx;
 	}
 
-	/* ===== 派工卡片 ===== */
 	.dispatch-cards {
 		display: flex;
 		flex-wrap: wrap;
@@ -506,7 +459,6 @@
 		box-shadow: 0 4rpx 12rpx rgba(31, 45, 74, 0.08);
 	}
 
-	/* 卡片顶部色条 */
 	.dispatch-card__top {
 		position: absolute;
 		top: 0;
@@ -541,7 +493,6 @@
 		text-overflow: ellipsis;
 	}
 
-	/* 四个指标：占满整行的四列，上标签下数字；第一列为主数值，字号更大 */
 	.dispatch-card__metrics {
 		display: flex;
 		gap: 16rpx;
@@ -566,7 +517,6 @@
 		text-overflow: ellipsis;
 	}
 
-	/* 次数值：中性色、常规字重，弱于主数值 */
 	.dispatch-card__metric-value {
 		font-size: 26rpx;
 		font-weight: 600;
@@ -575,7 +525,6 @@
 		font-variant-numeric: tabular-nums;
 	}
 
-	/* 主数值：字号、字重、颜色同时加强，形成明显主次 */
 	.dispatch-card__metric--primary .dispatch-card__metric-label {
 		color: #5b6478;
 		font-weight: 500;
@@ -619,7 +568,6 @@
 		color: #a8b0be;
 	}
 
-	/* ===== 抽屉遮罩层 ===== */
 	.drawer-mask {
 		position: fixed;
 		top: 0;
@@ -638,7 +586,6 @@
 		visibility: visible;
 	}
 
-	/* ===== 左侧抽屉导航 ===== */
 	.drawer {
 		position: fixed;
 		top: 0;

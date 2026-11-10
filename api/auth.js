@@ -1,13 +1,9 @@
-// api/auth.js
-// 登录相关接口（App / 小程序 / H5 共用同一后端接口）
+// 登录相关接口：登录成功后由调用方保存登录态（见 utils/auth.js）
 import { http } from '@/utils/request/http'
 import { clearAuth } from '@/utils/auth'
 
-// 账号密码登录：POST application/x-www-form-urlencoded
-// 表单字段：
-//   username   账号（必填）
-//   password   密码（必填）
+// 账号密码登录，服务端要求 x-www-form-urlencoded
 export const login = (data) => http.postFormData('/k1swUserApi/login', data)
 
-// 退出登录：清除本地登录态
+// 退出登录：仅清理本地登录态
 export const logout = () => clearAuth()

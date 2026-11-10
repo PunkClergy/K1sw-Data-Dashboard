@@ -1,42 +1,32 @@
-// api/customer.js
-// 客户列表相关接口
+// K1SW 业务接口：成功判定 code === 1000，业务数据在 content，总数在 count
 import { http } from '@/utils/request/http'
 
-// 获取菜单列表
+// 左侧抽屉菜单，首页与派工页共用
 export const getMenuList = () => http.get('/k1swMenuApi/menulist')
 
-// 获取公司漏斗数据
+// 首页看板漏斗数据（按节点分组）
 export const getCompanyFunnel = () => http.get('/reportApi/companyFunnel')
 
-// ===== 派工页专用接口 =====
-// 菜单接口 k1swMenuApi/menulist 为首页/派工页公用，直接复用 getMenuList
-// 看板数据不复用首页的 getCompanyFunnel，单独定义 getDispatchFunnel，两页各自维护
-
-// 派工页 - 看板数据（派工专用路径 /reportApi/dispatchWork）
+// 派工页看板数据（按人统计派工 / 回复 / 已读 / 今日完成）
 export const getDispatchFunnel = () => http.get('/reportApi/dispatchWork')
 
-// 获取联系人列表
-// params: { page, pageSize, companyName, startDate, endDate, step, salerName }
+// 客户列表分页查询，筛选条件整体透传
 export const getContactList = (params) => http.get('/contaceApi/contactList', params)
 
-// 获取跟进记录详情
-// params: { orderid, type }
+// 某条客户的沟通记录（跟进记录弹窗）
 export const getMoreContactList = (params) => http.get('/contaceApi/moreContactList', params)
 
-// 获取公司详情
-// params: { orderid, type }
+// 公司详情（更多弹窗：公司介绍 / 知彼2）
 export const getCompanyInfo = (params) => http.get('/contaceApi/companyInfo', params)
 
-// 提交点评
-// data: { reviewContent, orderid, type }
+// 提交点评，参数走 form-urlencoded
 export const reviewContact = (data) => http.postFormData('/contaceApi/reviewContact', data)
 
-// 标记客户已读（点卡片上的「已读」按钮触发）
-// data: { id }
+// 标记已读，前端同时把该卡片置为已读底色
 export const readContact = (data) => http.postFormData('/contaceApi/readContact', data)
 
-// 获取销售员列表
+// 筛选弹窗的销售员下拉数据
 export const getSellerList = () => http.get('/contaceApi/personList')
 
-// 获取节点列表（客户列表页筛选「所属节点」下拉数据）
+// 筛选弹窗的所属节点下拉数据
 export const getStepList = () => http.get('/contaceApi/stepList')
