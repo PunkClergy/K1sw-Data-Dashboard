@@ -9,8 +9,8 @@ const defaultConfig = {
 }
 
 // 后端基础地址：切换环境改这里，或运行时调用 http.setBaseURL(url)
-const DEFAULT_BASE_URL = 'https://k1sw.wiselink.net.cn'  // 生产环境
-// const DEFAULT_BASE_URL = 'http://192.168.10.100:8689'  // 本地开发环境
+// const DEFAULT_BASE_URL = 'https://k1sw.wiselink.net.cn'  // 生产环境
+const DEFAULT_BASE_URL = 'http://192.168.10.100:8689'  // 本地开发环境
 
 // 将对象参数序列化为 query string（跳过 null / undefined / 空串；数组按重复 key 拼接）
 function buildQueryString(params = {}) {

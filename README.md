@@ -113,8 +113,7 @@
 │   ├── login/index.vue         # 登录页（自定义导航 + 品牌区）
 │   ├── index/index.vue         # 首页（看板 + 抽屉导航）
 │   ├── list/index.vue          # 客户列表页（卡片 + 筛选 + 分页 + 详情 + 跟进 + 点评）
-│   ├── dispatch/index.vue      # 派工页（看板卡片 + 抽屉导航，独立的派工接口）
-│   └── dispatch/list/index.vue # 派工列表页（功能同客户列表页，接口为派工专用封装）
+│   └── dispatch/index.vue      # 派工页（看板卡片 + 抽屉导航，独立的派工接口）
 ├── utils/
 │   ├── auth.js                 # 登录态读写
 │   └── request/http.js         # 通用网络封装（自动 loading、环境切换、认证头注入）
@@ -129,8 +128,7 @@
 | `pages/login/index` | 登录页（默认启动页） |
 | `pages/index/index` | 首页数据看板 |
 | `pages/list/index` | 客户列表页（从看板菜单跳转） |
-| `pages/dispatch/index` | 派工页（看板卡片 + 抽屉导航，接口独立于首页） |
-| `pages/dispatch/list/index` | 派工列表页（从派工卡片进入，功能与客户列表页一致，接口为派工专用封装） |
+| `pages/dispatch/index` | 派工页（看板卡片 + 抽屉导航，接口独立于首页；卡片进入客户列表页） |
 
 ## 接口列表
 
@@ -138,15 +136,17 @@
 |---|---|---|
 | `/k1swUserApi/login` | POST | 登录接口 |
 | `/k1swMenuApi/menulist` | GET | 菜单列表接口 |
-| `/reportApi/companyFunnel` | GET | 公司漏斗看板数据 |
+| `/reportApi/companyFunnel` | GET | 公司漏斗看板数据（首页） |
+| `/reportApi/dispatchWork` | GET | 派工看板数据（派工页） |
 | `/contaceApi/contactList` | GET | 客户列表（分页） |
 | `/contaceApi/moreContactList` | GET | 跟进记录详情 |
 | `/contaceApi/companyInfo` | GET | 公司详情 |
 | `/contaceApi/reviewContact` | POST | 提交点评 |
 | `/contaceApi/readContact` | POST | 标记客户已读 |
 | `/contaceApi/personList` | GET | 销售员列表 |
+| `/contaceApi/stepList` | GET | 节点列表（筛选「所属节点」下拉） |
 
-> 派工页与派工列表页使用独立封装的接口函数（`getDispatchFunnel`、`getDispatchContactList` 等），路径暂与首页/客户列表页一致，后端给出专用路径后只改 `api/customer.js` 中对应的一行。
+> 派工页看板走独立封装的 `getDispatchFunnel`，路径为 `/reportApi/dispatchWork`；其余客户列表、详情、点评、已读、销售员接口由首页与客户列表页共用，派工页卡片进入的是 `pages/list/index` 同一个页面。
 
 ## 技术栈
 

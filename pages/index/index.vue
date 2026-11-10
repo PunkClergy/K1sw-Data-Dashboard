@@ -10,7 +10,7 @@
 						<view class="navbar__menu-line"></view>
 					</view>
 				</view>
-				<text class="navbar__title">K1SW 数据看板</text>
+				<text class="navbar__title">{{ navTitle }}</text>
 				<view class="navbar__placeholder"></view>
 			</view>
 		</view>
@@ -102,14 +102,23 @@
 				isDrawerOpen: false,
 				activeMenuId: null,
 				activeName: '数据看板',
+				appTitle: 'K1SW 数据看板',
 				menuList: [],
 				dashboardGroups: [],
 				pendingMenu: null
 			}
 		},
+		computed: {
+			// 头部标题取当前选中菜单名，菜单未返回时用品牌名兜底
+			navTitle() {
+				return this.activeName || this.appTitle
+			}
+		},
 		onLoad(options) {
 			// 记录菜单跳转带过来的目标菜单，用于对齐左侧抽屉的选中项
+			// 小程序端不会自动解码路由参数，先还原再参与 name 比对
 			this.menuQuery = options || {}
+			this.menuQuery.name = this.decodeQueryValue(this.menuQuery.name)
 			this.initStatusBarHeight()
 			this.loadMenuData()
 		},
@@ -121,6 +130,17 @@
 			this.loadDashboardData()
 		},
 		methods: {
+			// 路由参数兜底解码：只对含 % 的值解码，避免 H5 已自动解码时二次解码
+			decodeQueryValue(val) {
+				if (val == null) return ''
+				const str = String(val)
+				if (str.indexOf('%') === -1) return str
+				try {
+					return decodeURIComponent(str)
+				} catch (e) {
+					return str
+				}
+			},
 			// 初始化状态栏高度
 			initStatusBarHeight() {
 				// #ifdef H5
@@ -228,9 +248,10 @@
 			},
 
 			// 卡片点击跳转列表页
+			// from=index → 列表页把 name 作为 step（节点类型）查询参数
 			onCardClick(item) {
 				uni.navigateTo({
-					url: `/pages/list/index?type=${item.name}&name=${item.name} 节点列表`
+					url: `/pages/list/index?type=${encodeURIComponent(item.name)}&name=${encodeURIComponent(item.name)}&from=index`
 				})
 			},
 

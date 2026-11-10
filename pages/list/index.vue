@@ -107,11 +107,25 @@
 								<view class="chip" :class="{ active: filterForm.isReview === 1 }" @tap="onReviewedChange(1)">已点评</view>
 							</view>
 						</view>
+						<!-- 销售员：从派工入口进入时该销售员固定，只展示不可改 -->
 						<view class="form-row">
 							<text class="form-label">销售员</text>
-							<picker class="form-picker" :range="salesList" @change="onSalesChange">
+							<picker v-if="fromPage !== 'dispatch'" class="form-picker" :range="salesList" @change="onSalesChange">
 								<view class="form-picker-value">{{ filterForm.salerName || '请选择' }}</view>
 							</picker>
+							<view v-else class="form-picker">
+								<view class="form-picker-value is-locked">{{ filterForm.salerName || '-' }}</view>
+							</view>
+						</view>
+						<!-- 所属节点：从首页入口进入时该节点固定，只展示不可改 -->
+						<view class="form-row">
+							<text class="form-label">所属节点</text>
+							<picker v-if="fromPage !== 'index'" class="form-picker" :range="nodeList" @change="onNodeChange">
+								<view class="form-picker-value">{{ step || '请选择' }}</view>
+							</picker>
+							<view v-else class="form-picker">
+								<view class="form-picker-value is-locked">{{ step || '-' }}</view>
+							</view>
 						</view>
 						<view class="form-row">
 							<text class="form-label">创建时间</text>
@@ -243,15 +257,20 @@
 		getCompanyInfo,
 		reviewContact,
 		getSellerList,
-		readContact
+		readContact,
+		getStepList
 	} from '@/api'
 	export default {
 		data() {
 			return {
 				statusBarHeight: 20,
 				nodeType: '',
-				pageTitle: '节点列表',
+				pageTitle: '',
 				step: '',
+				// 入口来源：index（首页卡片）/ dispatch（派工卡片），决定筛选弹窗显示销售员还是所属节点
+				fromPage: 'index',
+				// 所属节点下拉选项，取看板卡片名
+				nodeList: [],
 				showFilter: false,
 				showFollowUp: false,
 				salesList: ['宋金亮'],
@@ -295,9 +314,22 @@
 			}
 			// #endif
 
-			this.nodeType = options.type || ''
-			this.pageTitle = options.name || '节点列表'
-			this.step = options.type || ''
+			// 路由参数统一解码：小程序端不会自动解码，H5 已解码时不再重复处理
+			const entryName = this.decodeQueryValue(options.type)
+			this.nodeType = entryName
+			this.pageTitle = this.decodeQueryValue(options.name)
+			// 两个入口传的 name 落到不同查询参数：
+			// 派工页进入 → 按销售员筛选（salerName），筛选弹窗给“所属节点”下拉
+			// 首页进入   → 按节点类型筛选（step），筛选弹窗给“销售员”下拉
+			this.fromPage = (options.from || 'index') === 'dispatch' ? 'dispatch' : 'index'
+			if (this.fromPage === 'dispatch') {
+				this.step = ''
+				this.filterForm.salerName = entryName
+				this.loadNodeList()
+			} else {
+				this.step = entryName
+				this.filterForm.salerName = ''
+			}
 			this.loadData()
 			this.loadSellerList()
 		},
@@ -308,6 +340,33 @@
 			}
 		},
 		methods: {
+			// 所属节点选项：取 /contaceApi/stepList
+			// 后端若返回字符串数组直接用，返回对象数组则按 name/stepName/step 兜底取值
+			async loadNodeList() {
+				try {
+					const res = await getStepList()
+					const rows = Array.isArray(res && res.content) ? res.content : []
+					this.nodeList = rows
+						.map(row => typeof row === 'string' ? row : (row && (row.name || row.stepName || row.step)) || '')
+						.filter(name => !!name)
+				} catch (err) {
+					console.error('所属节点列表加载失败:', err)
+				}
+			},
+			onNodeChange(e) {
+				this.step = this.nodeList[e.detail.value] || ''
+			},
+			// 路由参数兜底解码：H5 已自动解码时不重复处理
+			decodeQueryValue(val) {
+				if (val == null) return ''
+				const str = String(val)
+				if (str.indexOf('%') === -1) return str
+				try {
+					return decodeURIComponent(str)
+				} catch (e) {
+					return str
+				}
+			},
 			async loadSellerList() {
 				try {
 					const res = await getSellerList()
@@ -334,8 +393,6 @@
 					this.hasMore = true
 					this.total = 0
 				}
-				console.log(this.step,'step')
-
 				try {
 					const res = await getContactList({
 						page: this.page,
@@ -378,13 +435,17 @@
 				}
 			},
 			resetFilter() {
+				// 锁定项（入口带过来的销售员 / 节点）不参与重置，否则会清掉必带条件
+				const lockedSalerName = this.fromPage === 'dispatch' ? this.filterForm.salerName : ''
+				const lockedStep = this.fromPage === 'index' ? this.step : ''
 				this.filterForm = {
 					companyName: '',
-					salerName: '',
+					salerName: lockedSalerName,
 					startDate: '',
 					endDate: '',
 					isReview: 0
 				}
+				this.step = lockedStep
 			},
 			onSalesChange(e) {
 				this.filterForm.salerName = this.salesList[e.detail.value]
@@ -1541,6 +1602,14 @@
 		overflow: hidden;
 		white-space: nowrap;
 		text-overflow: ellipsis;
+	}
+
+	/* 不可更改的筛选项：底色与描边都弱化，文字降一档，和可操作项区分开 */
+	.form-picker-value.is-locked {
+		background: #f1f5f9;
+		border-color: #e2e8f0;
+		box-shadow: inset 0 0 0 1rpx rgba(226, 232, 240, 0.6);
+		color: #8a94a6;
 	}
 
 	.date-range {

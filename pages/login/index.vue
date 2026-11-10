@@ -3,7 +3,7 @@
 		<!-- 自定义导航栏 -->
 		<view class="nav-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
 			<view class="nav-content">
-				<text class="nav-title">登录</text>
+				<text class="nav-title">{{ navTitle }}</text>
 			</view>
 		</view>
 
@@ -66,6 +66,8 @@
 			return {
 				statusBarHeight: 20,
 				contentPadTop: 44,
+				// 头部标题：登录页无菜单上下文，取品牌名（模板不写死，便于统一改文案）
+				navTitle: 'K1SW 数据看板',
 				username: '',
 				password: '',
 				showPassword: false,

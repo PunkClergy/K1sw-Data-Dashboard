@@ -10,7 +10,7 @@
 						<view class="navbar__menu-line"></view>
 					</view>
 				</view>
-				<text class="navbar__title">派工</text>
+				<text class="navbar__title">{{ navTitle }}</text>
 				<view class="navbar__placeholder"></view>
 			</view>
 		</view>
@@ -23,32 +23,37 @@
 				<text class="banner__sub">只统计当前账号名下的客户</text>
 			</view>
 
-			<!-- 派工卡片（每个销售员一张卡：姓名 + 累计派工客户 / 已完成 / 领导已读） -->
+			<!-- 派工卡片（每个销售员一张卡：姓名 + 累计回复数量 / 累计派工数量 / 本账号已读数量 / 今日完成派工数量） -->
 			<view class="dispatch-cards">
 				<view class="dispatch-card" v-for="(item, idx) in dispatchRows" :key="item.name + idx"
 					@tap="onCardClick(item)">
 					<view class="dispatch-card__top" :style="{ background: getCardColor(idx) }"></view>
 					<view class="dispatch-card__head">
 						<view class="dispatch-card__dot" :style="{ background: getCardColor(idx) }"></view>
-						<text class="dispatch-card__name">{{ item.name }}</text>
+						<text class="dispatch-card__name">{{ item.name || '未命名' }}</text>
 					</view>
 					<view class="dispatch-card__metrics">
-						<!-- 主数值：累计派工客户，字号最大、最突出 -->
+						<!-- 主数值：累计派工，字号最大、最突出 -->
 						<view class="dispatch-card__metric dispatch-card__metric--primary">
-							<text class="dispatch-card__metric-label">累计派工客户</text>
+							<text class="dispatch-card__metric-label">累计派工</text>
 							<text
-								class="dispatch-card__metric-value dispatch-card__metric-value--primary">{{ formatNumber(item.num) }}</text>
+								class="dispatch-card__metric-value dispatch-card__metric-value--primary">{{ formatNumber(item.dispatchCount) }}</text>
 						</view>
-						<!-- 次数值：已完成 / 领导已读，字号小一档、颜色更轻 -->
+						<!-- 次数值：累计回复 / 本账号已读 / 今日完成 -->
 						<view class="dispatch-card__metric">
-							<text class="dispatch-card__metric-label">已完成</text>
+							<text class="dispatch-card__metric-label">累计回复</text>
 							<text
-								class="dispatch-card__metric-value dispatch-card__metric-value--second">{{ formatNumber(item.num2) }}</text>
+								class="dispatch-card__metric-value dispatch-card__metric-value--second">{{ formatNumber(item.replyCount) }}</text>
 						</view>
 						<view class="dispatch-card__metric">
-							<text class="dispatch-card__metric-label">领导已读</text>
+							<text class="dispatch-card__metric-label">本账号已读</text>
 							<text
-								class="dispatch-card__metric-value dispatch-card__metric-value--third">{{ formatNumber(item.num3) }}</text>
+								class="dispatch-card__metric-value dispatch-card__metric-value--third">{{ formatNumber(item.readCount) }}</text>
+						</view>
+						<view class="dispatch-card__metric">
+							<text class="dispatch-card__metric-label">今日完成</text>
+							<text
+								class="dispatch-card__metric-value dispatch-card__metric-value--fourth">{{ formatNumber(item.todayCount) }}</text>
 						</view>
 					</view>
 				</view>
@@ -108,41 +113,6 @@
 		takePendingMenu
 	} from '@/utils/menuIntent'
 
-	// 派工看板 mock 数据
-	// 一行一个销售员：name 姓名、num 累计派工客户、num2 已完成、num3 领导已读
-	// 仅用于接口未接通期间占位，接入真实接口后删除即可
-	const MOCK_DISPATCH_ROWS = [{
-		name: '张三',
-		num: 30,
-		num2: 20,
-		num3: 10
-	}, {
-		name: '李四',
-		num: 25,
-		num2: 12,
-		num3: 8
-	}, {
-		name: '王五',
-		num: 18,
-		num2: 15,
-		num3: 15
-	}, {
-		name: '赵六',
-		num: 12,
-		num2: 6,
-		num3: 3
-	}, {
-		name: '孙七',
-		num: 9,
-		num2: 7,
-		num3: 2
-	}, {
-		name: '周八',
-		num: 6,
-		num2: 3,
-		num3: 1
-	}]
-
 	export default {
 		data() {
 			return {
@@ -150,16 +120,23 @@
 				isDrawerOpen: false,
 				activeMenuId: null,
 				activeName: '数据看板',
+				appTitle: 'K1SW 数据看板',
 				menuList: [],
 				dispatchRows: [],
-				pendingMenu: null,
-				// 是否使用本地 mock 看板数据：接口未接通期间为 true，接通后改成 false
-				useMockDashboard: true
+				pendingMenu: null
+			}
+		},
+		computed: {
+			// 头部标题取当前选中菜单名（派工页即“派工”），菜单未返回时用品牌名兜底
+			navTitle() {
+				return this.activeName || this.appTitle
 			}
 		},
 		onLoad(options) {
 			// 记录菜单跳转带过来的目标菜单，用于对齐左侧抽屉的选中项
+			// 小程序端不会自动解码路由参数，先还原再参与 name 比对
 			this.menuQuery = options || {}
+			this.menuQuery.name = this.decodeQueryValue(this.menuQuery.name)
 			this.initStatusBarHeight()
 			this.loadMenuData()
 		},
@@ -169,6 +146,17 @@
 			this.consumePendingMenu()
 		},
 		methods: {
+			// 路由参数兜底解码：只对含 % 的值解码，避免 H5 已自动解码时二次解码
+			decodeQueryValue(val) {
+				if (val == null) return ''
+				const str = String(val)
+				if (str.indexOf('%') === -1) return str
+				try {
+					return decodeURIComponent(str)
+				} catch (e) {
+					return str
+				}
+			},
 			// 初始化状态栏高度
 			initStatusBarHeight() {
 				// #ifdef H5
@@ -252,16 +240,11 @@
 				}
 			},
 
-			// 加载看板数据
-			// 数据来源切换只在这一个方法里：
-			//   useMockDashboard = true  -> 用本地 mock（MOCK_DISPATCH_ROWS）
-			//   useMockDashboard = false -> 调接口，取 res.content（[{ name, num, num2, num3 }]）
-			// 接口接通后只需把开关改成 false；字段名若与后端不一致，只改 normalizeDispatchRows
+			// 加载派工看板数据
+			// 派工页走自己的接口 getDispatchFunnel（/reportApi/dispatchWork），不复用首页的 getCompanyFunnel
+			// 返回体取 res.content，格式 [{ name, num, num2, num3 }]
+			// 字段名若与后端不一致，只改 normalizeDispatchRows
 			async loadDashboardData() {
-				if (this.useMockDashboard) {
-					this.dispatchRows = this.normalizeDispatchRows(MOCK_DISPATCH_ROWS)
-					return
-				}
 				try {
 					const res = await getDispatchFunnel()
 					this.dispatchRows = this.normalizeDispatchRows(res?.content)
@@ -273,15 +256,22 @@
 				}
 			},
 
-			// 接口数据归一化：mock 与真实接口共用，保证三列数字都有值、字段名只在这里适配
-			// 后端若用别的字段名（如领导已读叫 readNum），只改这里即可
+			// 接口数据归一化：把后端原始字段映射成卡片用的 4 个数 + 姓名
+			// 后端真实返回：{ allReplyCount, bindCompanyCount, realName, readReplyCount, todayReplyCount }
+			// 字段改名只改这里即可
 			normalizeDispatchRows(rows) {
 				if (!Array.isArray(rows)) return []
 				return rows.map(item => ({
-					name: item.name || item.username || '',
-					num: item.num != null ? item.num : 0,
-					num2: item.num2 != null ? item.num2 : 0,
-					num3: item.num3 != null ? item.num3 : (item.readNum != null ? item.readNum : 0)
+					// 姓名
+					name: item.realName || item.name || item.username || '',
+					// 累计派工数量
+					dispatchCount: item.bindCompanyCount != null ? item.bindCompanyCount : (item.num != null ? item.num : 0),
+					// 累计回复数量
+					replyCount: item.allReplyCount != null ? item.allReplyCount : 0,
+					// 本账号已读数量
+					readCount: item.readReplyCount != null ? item.readReplyCount : 0,
+					// 今日完成派工数量
+					todayCount: item.todayReplyCount != null ? item.todayReplyCount : 0
 				}))
 			},
 
@@ -297,10 +287,11 @@
 				return colors[index % colors.length]
 			},
 
-			// 卡片点击跳转派工列表页（pages/dispatch/list，接口独立）
+			// 卡片点击跳转客户列表页（pages/list/index，与首页卡片进入的是同一个页面）
+			// from=dispatch → 列表页把 name 作为 salerName（销售员）查询参数
 			onCardClick(item) {
 				uni.navigateTo({
-					url: `/pages/dispatch/list/index?type=${item.name}&name=${item.name} 派工列表`
+					url: `/pages/list/index?type=${encodeURIComponent(item.name)}&name=${encodeURIComponent(item.name)}&from=dispatch`
 				})
 			},
 
@@ -550,10 +541,10 @@
 		text-overflow: ellipsis;
 	}
 
-	/* 三个指标：占满整行的三列，上标签下数字；第一列为主数值，字号更大 */
+	/* 四个指标：占满整行的四列，上标签下数字；第一列为主数值，字号更大 */
 	.dispatch-card__metrics {
 		display: flex;
-		gap: 20rpx;
+		gap: 16rpx;
 		margin-top: 22rpx;
 		align-items: flex-end;
 	}
@@ -567,7 +558,7 @@
 	}
 
 	.dispatch-card__metric-label {
-		font-size: 20rpx;
+		font-size: 19rpx;
 		color: #a8b0be;
 		letter-spacing: 0.5rpx;
 		overflow: hidden;
@@ -577,7 +568,7 @@
 
 	/* 次数值：中性色、常规字重，弱于主数值 */
 	.dispatch-card__metric-value {
-		font-size: 28rpx;
+		font-size: 26rpx;
 		font-weight: 600;
 		line-height: 1.2;
 		color: #6b7488;
@@ -591,7 +582,7 @@
 	}
 
 	.dispatch-card__metric-value--primary {
-		font-size: 46rpx;
+		font-size: 42rpx;
 		font-weight: 800;
 		line-height: 1.1;
 		letter-spacing: -0.5rpx;
@@ -605,6 +596,11 @@
 
 	.dispatch-card__metric-value--third {
 		color: #f59e0b;
+		opacity: 0.85;
+	}
+
+	.dispatch-card__metric-value--fourth {
+		color: #a78bfa;
 		opacity: 0.85;
 	}
 

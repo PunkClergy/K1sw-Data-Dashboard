@@ -10,9 +10,10 @@ export const getCompanyFunnel = () => http.get('/reportApi/companyFunnel')
 
 // ===== 派工页专用接口 =====
 // 菜单接口 k1swMenuApi/menulist 为首页/派工页公用，直接复用 getMenuList
+// 看板数据不复用首页的 getCompanyFunnel，单独定义 getDispatchFunnel，两页各自维护
 
-// 派工页 - 看板数据（暂时沿用首页接口，后端给出真实路径后只改这一行）
-export const getDispatchFunnel = () => http.get('/reportApi/companyFunnel')
+// 派工页 - 看板数据（派工专用路径 /reportApi/dispatchWork）
+export const getDispatchFunnel = () => http.get('/reportApi/dispatchWork')
 
 // 获取联系人列表
 // params: { page, pageSize, companyName, startDate, endDate, step, salerName }
@@ -37,25 +38,5 @@ export const readContact = (data) => http.postFormData('/contaceApi/readContact'
 // 获取销售员列表
 export const getSellerList = () => http.get('/contaceApi/personList')
 
-// ===== 派工列表页专用接口 =====
-// 页面功能与 pages/list 完全一致，接口先沿用同一批路径；
-// 后端给出派工专用路径后，只改下面 6 个函数的 url，页面无需改动
-
-// 派工列表 - 联系人列表
-// params: { page, pageSize, companyName, startDate, endDate, step, salerName, isReview }
-export const getDispatchContactList = (params) => http.get('/contaceApi/contactList', params)
-
-// 派工列表 - 跟进记录详情
-export const getDispatchMoreContactList = (params) => http.get('/contaceApi/moreContactList', params)
-
-// 派工列表 - 公司详情
-export const getDispatchCompanyInfo = (params) => http.get('/contaceApi/companyInfo', params)
-
-// 派工列表 - 提交点评
-export const getDispatchReviewContact = (data) => http.postFormData('/contaceApi/reviewContact', data)
-
-// 派工列表 - 标记已读
-export const getDispatchReadContact = (data) => http.postFormData('/contaceApi/readContact', data)
-
-// 派工列表 - 销售员列表
-export const getDispatchSellerList = () => http.get('/contaceApi/personList')
+// 获取节点列表（客户列表页筛选「所属节点」下拉数据）
+export const getStepList = () => http.get('/contaceApi/stepList')
