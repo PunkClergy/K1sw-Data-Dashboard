@@ -3,6 +3,7 @@
 基于 uni-app（Vue3）的跨端数据看板，支持 App / 微信小程序 / H5。面向销售与派工场景，提供「登录 → 首页看板 → 客户列表 → 派工看板」的闭环，数据全部来自 K1SW 后端接口。
 
 - 面向使用者的操作说明见 [`使用指南.md`](./使用指南.md)
+- 发版、打包、上线验证见 [`上线指南.md`](./上线指南.md)
 - 工程内接口封装以 `api/customer.js` 为准；`API.md` 内容为早期版本，已过时
 
 ## 功能概览
@@ -68,8 +69,8 @@
 ### 客户列表
 
 - 卡片字段：`createdate`（左上显示为日期）；第 1 行左右并排 `replyman`（绑定销售员）与 `step`（所属节点）；第 2 行 `companyName`（蓝字点击即复制）；第 3 行 `replycontent`（超过 300 字折叠，可「显示详情 / 收起」）。
-- 已读底色由 `isread` 归一得到的 `redStates` 决定；已读按钮调 `POST /contaceApi/readContact`（只传 `id`，不弹全局 loading），成功后仅改前端底色，不重拉列表。
-- 点评弹窗先回填最近一次点评，未输入内容提交时按「已阅」；提交成功（`POST /contaceApi/reviewContact`）后该卡片只从前端移除，`total` 减 1 并重算 `hasMore`。
+- 点「已读」调 `POST /contaceApi/readContact`（只传 `id`，不弹全局 loading），成功后与点评一致——该卡片从当前列表移除，`total` 减 1 并重算 `hasMore`，不重拉列表。
+- 点评弹窗按 `reviewList` 数组展示历史点评（按时间倒序取最近 3 条，标题显示总条数），未输入内容提交时按「已阅」；提交成功（`POST /contaceApi/reviewContact`）后该卡片只从前端移除，`total` 减 1 并重算 `hasMore`。
 - 分页：`pageSize = 20`，`total` 取接口 `count`；`count` 为 0 或缺失时退化为「本页条数是否等于 20」判断是否还有下一页。
 - 任一弹窗打开时通过 `page-meta` 的 `overflow: hidden` + `.page-locked` 锁住背景滚动，关闭后不回顶。
 
@@ -161,7 +162,8 @@
 │   ├── menuIntent.js           # 跨页菜单选中意图（一次性传递）
 │   └── request/http.js         # 通用网络封装
 ├── static/images/logo.png      # 品牌 logo
-├── 使用指南.md                  # 使用与排错手册
+├── 使用指南.md                  # 使用者操作手册
+├── 上线指南.md                  # 发版与上线检查清单
 └── API.md                      # 早期接口文档（已过时，勿以此为准）
 ```
 
@@ -179,7 +181,7 @@
 
 | 配置项 | 当前值 | 说明 |
 |---|---|---|
-| 后端地址 | `http://192.168.10.100:8689` | 在 `utils/request/http.js` 的 `DEFAULT_BASE_URL`；生产地址 `https://k1sw.wiselink.net.cn` 以其上一行注释形式保留，切换时放开注释、注释掉本地那行 |
+| 后端地址 | `https://k1sw.wiselink.net.cn`（生产，生效中） | 在 `utils/request/http.js` 的 `DEFAULT_BASE_URL`；本地调试地址 `http://192.168.10.100:8689` 已在下一行注释，切换时两行互换 |
 | 微信小程序 AppID | `wxb22f46c5e4301c1c` | 已填 |
 | 小程序域名校验 | `urlCheck: false` | 开发期跳过校验，正式发布前需在公众平台配置 request 合法域名 |
 | H5 路由 | `hash`，`base: "./"` | 可部署到任意子目录 |
@@ -191,8 +193,8 @@
 |---|---|
 | token 失效 | 无统一 401 / 9000 拦截，不会自动跳登录 |
 | 登录成功校验 | 未校验返回内容中是否含 token |
-| 点评后消失 | 仅前端移除，未回写后端状态，重进列表会按「点评状态」重新出现 |
+| 点评 / 已读后消失 | 仅前端移除（共用 `removeListItem`），未回写后端状态；重进列表后端仍会返回这些卡片，且不再有已读底色区分 |
 | 列表刷新 | 列表页只有 `onLoad`，没有 `onShow`，返回本页不会自动刷新 |
 | 首页数字格式 | `formatNumber` 未守卫空值，字段缺失会显示 `NaN`（派工页已兜底为 `-`） |
-| 字段口径 | `isread`、`stepList` 返回结构、`isReview` 参数名仍待后端确认 |
+| 字段口径 | `stepList` 返回结构、`isReview` 参数名仍待后端确认 |
 | `API.md` | 内容为早期路径（如 `/api/dashboard/stats`），以本文件与 `api/customer.js` 为准 |

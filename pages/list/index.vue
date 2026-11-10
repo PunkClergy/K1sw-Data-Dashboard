@@ -28,8 +28,7 @@
 		</view>
 
 		<view class="list" :style="{ paddingTop: (statusBarHeight + 100) + 'px' }">
-			<!-- is-read 决定已读底色，redStates 由后端 isread 归一得到 -->
-			<view class="list-card" v-for="item in listData" :key="item.id" :class="{ 'is-read': item.redStates === true }">
+				<view class="list-card" v-for="item in listData" :key="item.id">
 
 				<view class="card-head">
 					<view class="head-left">
@@ -44,7 +43,7 @@
 					<view class="meta-row meta-row-split">
 						<view class="meta-col">
 							<text class="meta-label">销售员</text>
-							<text class="meta-value">{{ item.replyman || '-' }}</text>
+							<text class="meta-value">{{ item.salePerson || '-' }}</text>
 						</view>
 						<view class="meta-col">
 							<text class="meta-label">所属节点</text>
@@ -57,7 +56,7 @@
 							@tap="copyText(item.companyName)">{{ item.companyName || '-' }}</text>
 					</view>
 					<view class="field-item full-width">
-						<text class="field-label">沟通内容</text>
+						<text class="field-label">沟通内容 - 来自{{item.replyman}}</text>
 						<text class="field-value"
 							:class="{ 'text-clamp': !item.textExpanded }">{{ item.replycontent || '' }}</text>
 					</view>
@@ -225,13 +224,15 @@
 				</view>
 				<view class="action-body">
 
-					<view class="review-card"
-						v-if="lastReview.reviewcontent || lastReview.reviewdate || lastReview.reviewman">
-						<view class="review-head">
-							<text class="review-man">{{ lastReview.reviewman || '未知点评人' }}</text>
-							<text class="review-date">{{ lastReview.reviewdate }}</text>
+					<view class="review-history" v-if="reviewList.length">
+						<text class="review-history-title">历史点评：共 {{ reviewList.length }} 条{{ reviewList.length > 3 ? '，展示最近 3 条' : '' }}</text>
+						<view class="review-card" v-for="(rv, idx) in reviewShown" :key="rv.id != null ? rv.id : idx">
+							<view class="review-head">
+								<text class="review-man">{{ rv.reviewman || '未知点评人' }}</text>
+								<text class="review-date">{{ rv.reviewdate || '' }}</text>
+							</view>
+							<text class="review-text">{{ rv.reviewcontent || '' }}</text>
 						</view>
-						<text class="review-text">{{ lastReview.reviewcontent }}</text>
 					</view>
 
 					<view class="action-input-wrap">
@@ -288,11 +289,8 @@
 				showAction: false,
 				actionContent: '',
 				currentActionItem: null,
-				lastReview: {
-					reviewcontent: '',
-					reviewdate: '',
-					reviewman: ''
-				},
+				reviewList: [],
+				reviewShown: [],
 				page: 1,
 				pageSize: 20,
 				total: 0,
@@ -371,13 +369,6 @@
 					console.error('销售员列表加载失败:', err)
 				}
 			},
-			// 后端 isread 可能是 boolean / 字符串 / 数字，统一归一为 redStates
-			normalizeReadState(rows) {
-				return rows.map(row => ({
-					...row,
-					redStates: row.isread === true || row.isread === 'true' || row.isread === 1 || row.isread === '1'
-				}))
-			},
 			// 分页查询：page 变化才累加，首页查询会重置 total 与 hasMore
 			// silent 用于静默刷新（不弹全局 loading）
 			async loadData(isLoadMore = false, silent = false) {
@@ -403,7 +394,7 @@
 						loading: !isLoadMore && !silent
 					})
 					if (res.code === 1000) {
-						const rows = this.normalizeReadState(Array.isArray(res.content) ? res.content : [])
+						const rows = Array.isArray(res.content) ? res.content : []
 						if (isLoadMore) {
 							this.listData = [...this.listData, ...rows]
 						} else {
@@ -471,20 +462,20 @@
 				this.showFilter = false
 				this.loadData()
 			},
-			// 标记已读：成功后本地立即置为已读底色，不重新拉列表
+			// 标记已读：成功后把该卡片从当前列表移除（仅前端），与点评一致
 			async markCardRead(item) {
-				if (!item || item.redStates === true || item._readPending) return
+				if (!item || item._readPending) return
 				item._readPending = true
 				try {
 					const res = await readContact({
 						id: item.id
 					})
 					if (res.code === 1000) {
-						item.redStates = true
 						uni.showToast({
 							title: '已标记已读',
 							icon: 'none'
 						})
+						this.removeListItem(item)
 					} else {
 						uni.showToast({
 							title: res.msg || '接口请求失败',
@@ -542,15 +533,14 @@
 					})
 				}
 			},
-			// 点评弹窗：先回填最近一次点评，再允许追加新内容
+			// 点评弹窗：按 reviewList 展示历史点评（取最近 3 条），并允许追加新内容
 			openAction(item) {
 				this.currentActionItem = item
 				this.actionContent = ''
-				this.lastReview = {
-					reviewcontent: item.reviewcontent || '',
-					reviewdate: item.reviewdate || '',
-					reviewman: item.reviewman || ''
-				}
+				const rows = Array.isArray(item.reviewList) ? item.reviewList.slice() : []
+				rows.sort((a, b) => String(b.reviewdate || '').localeCompare(String(a.reviewdate || '')))
+				this.reviewList = rows
+				this.reviewShown = rows.slice(0, 3)
 				this.showAction = true
 			},
 			// 未输入内容默认提交「已阅」；成功后只在前端移除该卡片，不重新请求
@@ -572,7 +562,7 @@
 									icon: 'success'
 								})
 								this.showAction = false
-								this.removeReviewedItem(this.currentActionItem)
+								this.removeListItem(this.currentActionItem)
 							} catch (err) {
 								console.error('点评提交失败:', err)
 								uni.showToast({
@@ -585,7 +575,8 @@
 				})
 			},
 
-			removeReviewedItem(item) {
+			// 仅前端移除一条：点评、已读共用，同步 total 与 hasMore
+			removeListItem(item) {
 				if (!item) return
 				const before = this.listData.length
 				if (item.id != null) {
@@ -744,12 +735,6 @@
 		margin-bottom: 20rpx;
 		box-shadow: 0 4rpx 16rpx rgba(31, 45, 74, 0.05);
 		transition: background 0.2s, box-shadow 0.2s;
-	}
-
-	.list-card.is-read {
-		background: #e3e8f1;
-		border: 1rpx solid #d7dee9;
-		box-shadow: none;
 	}
 
 	.card-head {
@@ -1261,6 +1246,13 @@
 	.action-close {
 		font-size: 28rpx;
 		color: #6b7280;
+	}
+
+	.review-history-title {
+		display: block;
+		font-size: 24rpx;
+		color: #8a94a6;
+		margin-bottom: 16rpx;
 	}
 
 	.review-card {
