@@ -20,7 +20,6 @@
 
 			<view class="banner">
 				<text class="banner__title">{{activeName}}</text>
-				<text class="banner__sub">只统计当前账号名下的客户</text>
 			</view>
 
 			<view class="dashboard" v-for="group in dashboardGroups" :key="group.name">

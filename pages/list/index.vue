@@ -41,9 +41,15 @@
 				</view>
 
 				<view class="field-grid">
-					<view class="meta-row">
-						<text class="meta-label">绑定销售员</text>
-						<text class="meta-value">{{ item.replyman || '-' }}</text>
+					<view class="meta-row meta-row-split">
+						<view class="meta-col">
+							<text class="meta-label">销售员</text>
+							<text class="meta-value">{{ item.replyman || '-' }}</text>
+						</view>
+						<view class="meta-col">
+							<text class="meta-label">所属节点</text>
+							<text class="meta-value">{{ item.step || '-' }}</text>
+						</view>
 					</view>
 					<view class="meta-row">
 						<text class="meta-label">公司名称</text>
@@ -849,6 +855,22 @@
 		border-top: 3rpx solid #c8d0dc;
 		border-right: 3rpx solid #c8d0dc;
 		transform: rotate(45deg);
+	}
+
+	.meta-row-split {
+		gap: 24rpx;
+	}
+
+	.meta-col {
+		display: flex;
+		align-items: center;
+		flex: 1;
+		min-width: 0;
+	}
+
+	.meta-col .meta-label {
+		width: 150rpx;
+		font-size: 25rpx;
 	}
 
 	.meta-row {

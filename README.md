@@ -67,7 +67,7 @@
 
 ### 客户列表
 
-- 卡片字段：`createdate`（左上显示为日期）、`replyman`（绑定销售员）、`companyName`（蓝字点击即复制）、`replycontent`（超过 300 字折叠，可「显示详情 / 收起」）。
+- 卡片字段：`createdate`（左上显示为日期）；第 1 行左右并排 `replyman`（绑定销售员）与 `step`（所属节点）；第 2 行 `companyName`（蓝字点击即复制）；第 3 行 `replycontent`（超过 300 字折叠，可「显示详情 / 收起」）。
 - 已读底色由 `isread` 归一得到的 `redStates` 决定；已读按钮调 `POST /contaceApi/readContact`（只传 `id`，不弹全局 loading），成功后仅改前端底色，不重拉列表。
 - 点评弹窗先回填最近一次点评，未输入内容提交时按「已阅」；提交成功（`POST /contaceApi/reviewContact`）后该卡片只从前端移除，`total` 减 1 并重算 `hasMore`。
 - 分页：`pageSize = 20`，`total` 取接口 `count`；`count` 为 0 或缺失时退化为「本页条数是否等于 20」判断是否还有下一页。
