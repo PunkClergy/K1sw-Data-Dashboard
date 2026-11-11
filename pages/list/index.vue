@@ -67,7 +67,8 @@
 							@tap="item.textExpanded = !item.textExpanded">
 							{{ item.textExpanded ? '收起' : '显示详情' }}
 						</text>
-						<view class="mini-btn read-btn" @tap.stop="markCardRead(item)">
+						<view class="mini-btn read-btn" :class="{ 'is-disabled': item.isread == 1 }"
+							@tap.stop="markCardRead(item)">
 							<text class="mini-text">已读</text>
 						</view>
 						<view class="footer-actions">
@@ -464,7 +465,7 @@
 			},
 			// 标记已读：成功后把该卡片从当前列表移除（仅前端），与点评一致
 			async markCardRead(item) {
-				if (!item || item._readPending) return
+				if (!item || item.isread == 1 || item._readPending) return
 				item._readPending = true
 				try {
 					const res = await readContact({
@@ -809,6 +810,16 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
+	}
+
+	.read-btn.is-disabled {
+		background: #f1f5f9;
+		border-color: #e2e8f0;
+		opacity: 0.7;
+	}
+
+	.read-btn.is-disabled .mini-text {
+		color: #a8b0be;
 	}
 
 	.read-btn {

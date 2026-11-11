@@ -69,7 +69,7 @@
 ### 客户列表
 
 - 卡片字段：`createdate`（左上显示为日期）；第 1 行左右并排 `replyman`（绑定销售员）与 `step`（所属节点）；第 2 行 `companyName`（蓝字点击即复制）；第 3 行 `replycontent`（超过 300 字折叠，可「显示详情 / 收起」）。
-- 点「已读」调 `POST /contaceApi/readContact`（只传 `id`，不弹全局 loading），成功后与点评一致——该卡片从当前列表移除，`total` 减 1 并重算 `hasMore`，不重拉列表。
+- 已读过的卡片（`isread == 1`）按钮置灰、点击不发请求；其余卡片点「已读」调 `POST /contaceApi/readContact`（只传 `id`，不弹全局 loading），成功后与点评一致——该卡片从当前列表移除，`total` 减 1 并重算 `hasMore`，不重拉列表。
 - 点评弹窗按 `reviewList` 数组展示历史点评（按时间倒序取最近 3 条，标题显示总条数），未输入内容提交时按「已阅」；提交成功（`POST /contaceApi/reviewContact`）后该卡片只从前端移除，`total` 减 1 并重算 `hasMore`。
 - 分页：`pageSize = 20`，`total` 取接口 `count`；`count` 为 0 或缺失时退化为「本页条数是否等于 20」判断是否还有下一页。
 - 任一弹窗打开时通过 `page-meta` 的 `overflow: hidden` + `.page-locked` 锁住背景滚动，关闭后不回顶。
